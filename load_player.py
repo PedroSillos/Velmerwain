@@ -22,13 +22,40 @@ def get_summoner_data_by_puuid(puuid: str, apiKey: str) -> tuple:
 def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int):
     file_exists = os.path.isfile("player.csv")
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open("player.csv", mode="a", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        if not file_exists:
+
+    if not file_exists:
+        with open("player.csv", mode="w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
             writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
             writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
-        else:
-            writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+        return
+
+    with open("player.csv", mode="r", newline="", encoding="utf-8") as file:
+        reader = list(csv.reader(file))
+
+    header = reader[0]
+    rows = reader[1:]
+    updated = False
+
+    # Procura o puuid para atualizar
+    for row in rows:
+        if row[0] == puuid:
+            row[1] = gameName
+            row[2] = tagLine
+            row[3] = str(profileIconId)
+            row[4] = str(revisionDate)
+            row[5] = str(summonerLevel)
+            row[6] = now
+            updated = True
+            break
+
+    if not updated:
+        rows.append([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+
+    with open("player.csv", mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+        writer.writerows(rows)
 
 if __name__ == "__main__":
     apiKey = "RGAPI-09367fe4-7a48-42f1-bc97-285e7ea50894"
