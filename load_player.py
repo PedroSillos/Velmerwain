@@ -62,7 +62,7 @@ def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: i
         writer.writerows(rows)
 
 if __name__ == "__main__":
-    apiKey = "RGAPI-09367fe4-7a48-42f1-bc97-285e7ea50894"
+    apiKey = "RGAPI-4010c912-0170-43bc-bfb7-c9f913b5993e"
     gameName = "OTalDoPedrinho"
     tagLine = "BR1"
 
