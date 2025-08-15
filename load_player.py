@@ -19,15 +19,19 @@ def get_summoner_data_by_puuid(puuid: str, apiKey: str) -> tuple:
     data = response.json()
     return data.get("profileIconId"), data.get("revisionDate"), data.get("summonerLevel")
 
+def create_player_csv(file_name:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
+    with open("player.csv", mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
+        writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+    return
+
 def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int):
     file_exists = os.path.isfile("player.csv")
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not file_exists:
-        with open("player.csv", mode="w", newline="", encoding="utf-8") as file:
-            writer = csv.writer(file)
-            writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
-            writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+        create_player_csv("player.csv", puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
         return
 
     with open("player.csv", mode="r", newline="", encoding="utf-8") as file:
