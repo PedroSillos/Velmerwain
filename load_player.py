@@ -1,33 +1,40 @@
 import requests
-import pandas as pd
+import csv
+from datetime import datetime
+import os
 
-def get_puuid(game_name:str, tag_line:str):
-    account_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}?api_key={api_key}"
-    puuid = requests.get(account_url).json()["puuid"]
-    return puuid
+def get_puuid_by_riot_id(tagLine: str, gameName: str, apiKey: str) -> str:
+    url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
+    headers = {"X-Riot-Token": apiKey}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()
+    return data.get("puuid")
 
-def get_summoner_info(puuid:str, region:str):
-    summoner_url = f"https://{region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}?api_key={api_key}"
-    data = requests.get(summoner_url).json()
-    return data["profileIconId"], data["revisionDate"], data["summonerLevel"]
+def get_summoner_data_by_puuid(puuid: str, apiKey: str) -> tuple:
+    url = f"https://br1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+    headers = {"X-Riot-Token": apiKey}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    data = response.json()
+    return data.get("profileIconId"), data.get("revisionDate"), data.get("summonerLevel")
 
-api_key = "RGAPI-09367fe4-7a48-42f1-bc97-285e7ea50894"
-game_name = "OTalDoPedrinho"
-tag_line = "BR1"
+def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int):
+    file_exists = os.path.isfile("player.csv")
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open("player.csv", mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
+            writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+        else:
+            writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
 
-puuid = get_puuid(game_name, tag_line)
-region = tag_line.lower()
-profile_icon_id, revision_date, summoner_level = get_summoner_info(puuid, region)
+if __name__ == "__main__":
+    apiKey = "RGAPI-09367fe4-7a48-42f1-bc97-285e7ea50894"
+    gameName = "OTalDoPedrinho"
+    tagLine = "BR1"
 
-df = pd.DataFrame([{
-    "puuid": puuid,
-    "game_name": game_name,
-    "tag_line": tag_line,
-    "profile_icon_id": profile_icon_id,
-    "revision_date": revision_date,
-    "summoner_level": summoner_level
-}])
-
-print(df)
-
-df.to_csv(path_or_buf="player.csv",header=True,index=False,mode='w')
+    puuid = get_puuid_by_riot_id(tagLine, gameName, apiKey)
+    profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(puuid, apiKey)
+    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel)
