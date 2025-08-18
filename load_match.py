@@ -37,12 +37,22 @@ def save_matches_to_csv(matches_data, filename):
                 info.get("gameDuration"),
                 info.get("gameCreation"),
                 info.get("gameVersion"),
-                info.get("participants")[0].get("assists")
+                info.get("participants")[0].get("assists"),
+                info.get("participants")[0].get("deaths"),
+                info.get("participants")[0].get("kills"),
+                info.get("participants")[0].get("champLevel"),
+                info.get("participants")[0].get("championId"),
+                info.get("participants")[0].get("championName"),
+                info.get("participants")[0].get("goldEarned"),
+                info.get("participants")[0].get("individualPosition"),
+                info.get("participants")[0].get("totalDamageDealt"),
+                info.get("participants")[0].get("visionScore"),
+                info.get("participants")[0].get("win")
             ])
 
 if __name__ == "__main__":
     puuid = "mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA"
-    apiKey = "RGAPI-4010c912-0170-43bc-bfb7-c9f913b5993e"
+    apiKey = "RGAPI-5efab3ae-29f1-4712-af7b-4e9f6408ddba"
     region = "americas"
     
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
