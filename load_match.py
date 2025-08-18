@@ -18,10 +18,9 @@ def get_matches_data(matchIds, region, apiKey):
             print(f"{matchId}: {response.status_code} - {response.text}")
             continue
         matches_data.append(response.json())
-        time.sleep(1.2)
     return matches_data
 
-def save_matches_to_csv(matches_data, filename):
+def save_matches_to_csv(puuid, matches_data, filename):
     if not matches_data:
         return
 
@@ -31,23 +30,30 @@ def save_matches_to_csv(matches_data, filename):
         writer = csv.writer(file)
         writer.writerow(headers)
         for match in matches_data:
+            playerIndexInMatch = -1
+            playerPuuids = match.get("metadata").get("participants")
+            
+            for playerPuuid in playerPuuids:
+                if playerPuuid == puuid:
+                    playerIndexInMatch = playerPuuids.index(puuid)
+
             info = match.get("info")
             writer.writerow([
                 match.get("metadata").get("matchId"),
                 info.get("gameDuration"),
                 info.get("gameCreation"),
                 info.get("gameVersion"),
-                info.get("participants")[0].get("assists"),
-                info.get("participants")[0].get("deaths"),
-                info.get("participants")[0].get("kills"),
-                info.get("participants")[0].get("champLevel"),
-                info.get("participants")[0].get("championId"),
-                info.get("participants")[0].get("championName"),
-                info.get("participants")[0].get("goldEarned"),
-                info.get("participants")[0].get("individualPosition"),
-                info.get("participants")[0].get("totalDamageDealt"),
-                info.get("participants")[0].get("visionScore"),
-                info.get("participants")[0].get("win")
+                info.get("participants")[playerIndexInMatch].get("assists"),
+                info.get("participants")[playerIndexInMatch].get("deaths"),
+                info.get("participants")[playerIndexInMatch].get("kills"),
+                info.get("participants")[playerIndexInMatch].get("champLevel"),
+                info.get("participants")[playerIndexInMatch].get("championId"),
+                info.get("participants")[playerIndexInMatch].get("championName"),
+                info.get("participants")[playerIndexInMatch].get("goldEarned"),
+                info.get("participants")[playerIndexInMatch].get("individualPosition"),
+                info.get("participants")[playerIndexInMatch].get("totalDamageDealt"),
+                info.get("participants")[playerIndexInMatch].get("visionScore"),
+                info.get("participants")[playerIndexInMatch].get("win")
             ])
 
 if __name__ == "__main__":
@@ -57,4 +63,4 @@ if __name__ == "__main__":
     
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
     matches_data = get_matches_data(matchIds, region, apiKey)
-    save_matches_to_csv(matches_data, filename="match.csv")
+    save_matches_to_csv(puuid, matches_data, filename="match.csv")
