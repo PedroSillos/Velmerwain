@@ -1,5 +1,4 @@
 import requests
-#import time
 import csv
 import os
 from datetime import datetime
@@ -105,11 +104,15 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
+def loadStageTable(puuid, region, apiKey):
+    matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
+    matches_data = get_matches_data(matchIds, region, apiKey, filename=stage_file_name)
+    save_matches_to_csv(puuid, matches_data, filename=stage_file_name)
+
 if __name__ == "__main__":
     puuid = "mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA"
     apiKey = "RGAPI-5efab3ae-29f1-4712-af7b-4e9f6408ddba"
     region = "americas"
-    
-    matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-    matches_data = get_matches_data(matchIds, region, apiKey, filename="match.csv")
-    save_matches_to_csv(puuid, matches_data, filename="match.csv")
+    stage_file_name = "stage_match.csv"
+
+    loadStageTable(puuid, region, apiKey)
