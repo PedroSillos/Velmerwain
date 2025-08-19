@@ -1,24 +1,39 @@
-import requests
-import csv
 import os
 from datetime import datetime
 import pandas as pd
 
-def loadMatchStatsTable(stage_file_name):
+def loadMatchStatsTable(stage_file_name,stats_file_name):
     df_match_stage = pd.read_csv(stage_file_name)
-    
-    header = ["puuid", "gameVersion", "individualPosition", "championName", "winRate", "KDA", "averageKills", "averageDeaths", "averageAssists", "averageGoldEarned", "averageDamageDealt", "averageChampLevel", "averageVisionScore", "averageGameDuration", "datetime"]
-    
-    df_match_stats = pd.DataFrame(columns=header)
 
-    df_match_stats["puuid"] = df_match_stage["puuid"]
-    df_match_stats["gameVersion"] = df_match_stage["gameVersion"]
-    df_match_stats["individualPosition"] = df_match_stage["individualPosition"]
-    df_match_stats["championName"] = df_match_stage["championName"]
+    key_columns = ["puuid", "gameVersion", "individualPosition", "championName"]
+    
+    df_calc_stats = df_match_stage.groupby(key_columns).agg(
+        winRate=("win", "mean"),
+        KDA=(
+              "kills",
+              lambda x: (
+                (df_match_stage.loc[x.index, "kills"] + df_match_stage.loc[x.index, "assists"])
+                / df_match_stage.loc[x.index, "deaths"]).sum()
+        ),
+        averageKills=("kills", "mean"),
+        averageDeaths=("deaths", "mean"),
+        averageAssists=("assists", "mean"),
+        averageGoldEarned=("goldEarned", "mean"),
+        averageDamageDealt=("totalDamageDealt", "mean"),
+        averageChampLevel=("champLevel", "mean"),
+        averageVisionScore=("visionScore", "mean"),
+        averageGameDuration=("gameDuration", lambda x: x.sum() / 60.00)
+    ).reset_index()
 
-    print(df_match_stats)
+    df_calc_stats["modifiedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if not os.path.exists(stats_file_name):
+        df_calc_stats.to_csv(stats_file_name, index=False)
+    else:
+        df_file = pd.read_csv(stats_file_name)
 
 if __name__ == "__main__":
     stage_file_name = "stage_match.csv"
+    stats_file_name = "match_stats.csv"
 
-    loadMatchStatsTable(stage_file_name)
+    loadMatchStatsTable(stage_file_name,stats_file_name)
