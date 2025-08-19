@@ -56,6 +56,7 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     info.get("gameDuration"),
                     info.get("gameCreation"),
                     info.get("gameVersion"),
+                    info.get("participants")[playerIndexInMatch].get("puuid"),
                     info.get("participants")[playerIndexInMatch].get("assists"),
                     info.get("participants")[playerIndexInMatch].get("deaths"),
                     info.get("participants")[playerIndexInMatch].get("kills"),
@@ -71,7 +72,7 @@ def save_matches_to_csv(puuid, matches_data, filename):
                 ])
 
     else:
-        headers = ["matchId","gameDuration","gameCreation","gameVersion","assists","deaths","kills","champLevel","championId","championName","goldEarned","individualPosition","totalDamageDealt","visionScore","win","datetime"]
+        headers = ["matchId","gameDuration","gameCreation","gameVersion","puuid","assists","deaths","kills","champLevel","championId","championName","goldEarned","individualPosition","totalDamageDealt","visionScore","win","datetime"]
 
         with open(filename, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
@@ -90,6 +91,7 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     info.get("gameDuration"),
                     info.get("gameCreation"),
                     info.get("gameVersion"),
+                    info.get("participants")[playerIndexInMatch].get("puuid"),
                     info.get("participants")[playerIndexInMatch].get("assists"),
                     info.get("participants")[playerIndexInMatch].get("deaths"),
                     info.get("participants")[playerIndexInMatch].get("kills"),
