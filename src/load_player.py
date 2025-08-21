@@ -3,6 +3,12 @@ import csv
 from datetime import datetime
 import os
 
+def get_project_path(project_name:str):
+    file_path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(file_path)
+    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
+    return project_path
+
 def get_puuid_by_riot_id(tagLine: str, gameName: str, apiKey: str) -> str:
     url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
     headers = {"X-Riot-Token": apiKey}
@@ -20,21 +26,21 @@ def get_summoner_data_by_puuid(puuid: str, apiKey: str) -> tuple:
     return data.get("profileIconId"), data.get("revisionDate"), data.get("summonerLevel")
 
 def create_player_csv(file_name:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
-    with open("stage_player.csv", mode="w", newline="", encoding="utf-8") as file:
+    with open(file_name, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
         writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
     return
 
-def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int):
-    file_exists = os.path.isfile("stage_player.csv")
+def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, file_name: str):
+    file_exists = os.path.isfile(file_name)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not file_exists:
-        create_player_csv("stage_player.csv", puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
+        create_player_csv(file_name, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
         return
 
-    with open("stage_player.csv", mode="r", newline="", encoding="utf-8") as file:
+    with open(file_name, mode="r", newline="", encoding="utf-8") as file:
         reader = list(csv.reader(file))
 
     header = reader[0]
@@ -56,16 +62,20 @@ def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: i
     if not updated:
         rows.append([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
 
-    with open("stage_player.csv", mode="w", newline="", encoding="utf-8") as file:
+    with open(file_name, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(header)
         writer.writerows(rows)
 
 if __name__ == "__main__":
-    apiKey = "RGAPI-5efab3ae-29f1-4712-af7b-4e9f6408ddba"
+    project_name = "riot_games_analytics"
+    project_path = get_project_path(project_name)
+    
+    apiKey = "RGAPI-a8e54b3d-48d5-4963-a66a-02f40ada6636"
     gameName = "OTalDoPedrinho"
     tagLine = "BR1"
+    stage_file_name = f"{project_path}/data/stage_player.csv"
 
     puuid = get_puuid_by_riot_id(tagLine, gameName, apiKey)
     profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(puuid, apiKey)
-    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel)
+    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, stage_file_name)

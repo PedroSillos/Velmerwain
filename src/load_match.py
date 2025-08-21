@@ -3,6 +3,12 @@ import csv
 import os
 from datetime import datetime
 
+def get_project_path(project_name:str):
+    file_path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(file_path)
+    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
+    return project_path
+
 def get_match_ids_by_puuid(puuid, region, apiKey):
     url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100&api_key={apiKey}"
     response = requests.get(url)
@@ -106,15 +112,18 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
-def loadStageTable(puuid, region, apiKey):
+def loadStageTable(puuid, region, apiKey, stage_file_name):
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
     matches_data = get_matches_data(matchIds, region, apiKey, filename=stage_file_name)
     save_matches_to_csv(puuid, matches_data, filename=stage_file_name)
 
 if __name__ == "__main__":
+    project_name = "riot_games_analytics"
+    project_path = get_project_path(project_name)
+    
     puuid = "mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA"
-    apiKey = "RGAPI-5efab3ae-29f1-4712-af7b-4e9f6408ddba"
+    apiKey = "RGAPI-a8e54b3d-48d5-4963-a66a-02f40ada6636"
     region = "americas"
-    stage_file_name = "stage_match.csv"
+    stage_file_name = f"{project_path}/data/stage_match.csv"
 
-    loadStageTable(puuid, region, apiKey)
+    loadStageTable(puuid, region, apiKey, stage_file_name)

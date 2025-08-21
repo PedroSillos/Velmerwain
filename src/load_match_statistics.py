@@ -2,6 +2,12 @@ import os
 from datetime import datetime
 import pandas as pd
 
+def get_project_path(project_name:str):
+    file_path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(file_path)
+    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
+    return project_path
+
 def loadMatchStatsTable(stage_file_name,stats_file_name):
     df_match_stage = pd.read_csv(stage_file_name)
 
@@ -33,7 +39,9 @@ def loadMatchStatsTable(stage_file_name,stats_file_name):
     df_calc_stats.to_csv(stats_file_name, index=False)
 
 if __name__ == "__main__":
-    stage_file_name = "stage_match.csv"
-    stats_file_name = "match_stats.csv"
+    project_name = "riot_games_analytics"
+    project_path = get_project_path(project_name)
+    stage_file_name = f"{project_path}/data/stage_match.csv"
+    stats_file_name = f"{project_path}/data/match_stats.csv"
 
     loadMatchStatsTable(stage_file_name,stats_file_name)
