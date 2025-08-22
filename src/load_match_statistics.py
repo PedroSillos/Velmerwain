@@ -48,6 +48,9 @@ def loadMatchStatsTable(stage_file_path,stats_file_path):
     df_calc_stats.to_csv(stats_file_path, index=False)
 
 if __name__ == "__main__":
+    # How to run:
+    # python .\src\load_match_statistics.py --project_name riot_games_analytics --stage_file_name stage_match.csv --stats_file_name match_stats.csv
+    
     project_name, stage_file_name, stats_file_name = get_args()
     project_path = get_project_path(project_name)
     stage_file_path = f"{project_path}/data/{stage_file_name}"
