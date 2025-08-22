@@ -40,7 +40,7 @@ def loadMatchStatsTable(stage_file_path,stats_file_path):
         averageDamageDealt=("totalDamageDealt", "mean"),
         averageChampLevel=("champLevel", "mean"),
         averageVisionScore=("visionScore", "mean"),
-        averageGameDuration=("gameDuration", lambda x: x.sum() / 60.00)
+        averageGameDuration=("gameDuration", lambda x: x.mean() / 60.00)
     ).reset_index()
 
     df_calc_stats["modifiedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
