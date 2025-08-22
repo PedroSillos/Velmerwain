@@ -1,6 +1,15 @@
+import argparse
 import os
 from datetime import datetime
 import pandas as pd
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project_name", type=str)
+    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--stats_file_name", type=str)
+    args = parser.parse_args()
+    return args.project_name,args.stage_file_name,args.stats_file_name
 
 def get_project_path(project_name:str):
     file_path = os.path.abspath(__file__)
@@ -8,8 +17,8 @@ def get_project_path(project_name:str):
     project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
     return project_path
 
-def loadMatchStatsTable(stage_file_name,stats_file_name):
-    df_match_stage = pd.read_csv(stage_file_name)
+def loadMatchStatsTable(stage_file_path,stats_file_path):
+    df_match_stage = pd.read_csv(stage_file_path)
 
     df_match_stage['gameVersion'] = df_match_stage['gameVersion'].str.split('.').str[:2].str.join('.')
 
@@ -36,12 +45,12 @@ def loadMatchStatsTable(stage_file_name,stats_file_name):
 
     df_calc_stats["modifiedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    df_calc_stats.to_csv(stats_file_name, index=False)
+    df_calc_stats.to_csv(stats_file_path, index=False)
 
 if __name__ == "__main__":
-    project_name = "riot_games_analytics"
+    project_name, stage_file_name, stats_file_name = get_args()
     project_path = get_project_path(project_name)
-    stage_file_name = f"{project_path}/data/stage_match.csv"
-    stats_file_name = f"{project_path}/data/match_stats.csv"
+    stage_file_path = f"{project_path}/data/{stage_file_name}"
+    stats_file_path = f"{project_path}/data/{stats_file_name}"
 
-    loadMatchStatsTable(stage_file_name,stats_file_name)
+    loadMatchStatsTable(stage_file_path,stats_file_path)
