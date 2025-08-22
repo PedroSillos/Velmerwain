@@ -1,7 +1,18 @@
+import argparse
+import os
 import requests
 import csv
-import os
 from datetime import datetime
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project_name", type=str)
+    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--puuid", type=str)
+    parser.add_argument("--region", type=str)
+    parser.add_argument("--apiKey", type=str)
+    args = parser.parse_args()
+    return args.project_name,args.stage_file_name,args.puuid,args.region,args.apiKey
 
 def get_project_path(project_name:str):
     file_path = os.path.abspath(__file__)
@@ -112,18 +123,18 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
-def loadStageTable(puuid, region, apiKey, stage_file_name):
+def loadStageTable(puuid, region, apiKey, stage_file_path):
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-    matches_data = get_matches_data(matchIds, region, apiKey, filename=stage_file_name)
-    save_matches_to_csv(puuid, matches_data, filename=stage_file_name)
+    matches_data = get_matches_data(matchIds, region, apiKey, filename=stage_file_path)
+    save_matches_to_csv(puuid, matches_data, filename=stage_file_path)
 
 if __name__ == "__main__":
-    project_name = "riot_games_analytics"
+    # How to run:
+    # python .\src\load_match.py --project_name riot_games_analytics --stage_file_name stage_match.csv --puuid mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA --region americas --apiKey <apiKey>
+    
+    project_name, stage_file_name, puuid, region, apiKey = get_args()
     project_path = get_project_path(project_name)
     
-    puuid = "mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA"
-    apiKey = "RGAPI-a8e54b3d-48d5-4963-a66a-02f40ada6636"
-    region = "americas"
-    stage_file_name = f"{project_path}/data/stage_match.csv"
+    stage_file_path = f"{project_path}/data/{stage_file_name}"
 
-    loadStageTable(puuid, region, apiKey, stage_file_name)
+    loadStageTable(puuid, region, apiKey, stage_file_path)
