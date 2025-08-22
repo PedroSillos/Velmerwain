@@ -1,7 +1,18 @@
+import argparse
+import os
 import requests
 import csv
 from datetime import datetime
-import os
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project_name", type=str)
+    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--gameName", type=str)
+    parser.add_argument("--tagLine", type=str)
+    parser.add_argument("--apiKey", type=str)
+    args = parser.parse_args()
+    return args.project_name,args.stage_file_name,args.gameName,args.tagLine,args.apiKey
 
 def get_project_path(project_name:str):
     file_path = os.path.abspath(__file__)
@@ -68,13 +79,13 @@ def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: i
         writer.writerows(rows)
 
 if __name__ == "__main__":
-    project_name = "riot_games_analytics"
-    project_path = get_project_path(project_name)
+    # How to run:
+    # python .\src\load_player.py --project_name riot_games_analytics --stage_file_name stage_player.csv --gameName OTalDoPedrinho --tagLine BR1 --apiKey <apiKey>
     
-    apiKey = "RGAPI-a8e54b3d-48d5-4963-a66a-02f40ada6636"
-    gameName = "OTalDoPedrinho"
-    tagLine = "BR1"
-    stage_file_name = f"{project_path}/data/stage_player.csv"
+    project_name, stage_file_name, gameName, tagLine, apiKey = get_args()
+    project_path = get_project_path(project_name)
+
+    stage_file_name = f"{project_path}/data/{stage_file_name}"
 
     puuid = get_puuid_by_riot_id(tagLine, gameName, apiKey)
     profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(puuid, apiKey)
