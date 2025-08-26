@@ -6,90 +6,105 @@ from datetime import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--project_name", type=str)
-    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--stageFileName", type=str)
     parser.add_argument("--gameName", type=str)
     parser.add_argument("--tagLine", type=str)
+    parser.add_argument("--region", type=str)
     parser.add_argument("--apiKey", type=str)
+
     args = parser.parse_args()
-    return args.project_name,args.stage_file_name,args.gameName,args.tagLine,args.apiKey
+    return args.stageFileName, args.gameName, args.tagLine, args.region, args.apiKey
 
-def get_project_path(project_name:str):
-    file_path = os.path.abspath(__file__)
-    dir_path = os.path.dirname(file_path)
-    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
-    return project_path
+def get_project_paths(stageFileName:str):
+    srcPath = os.path.abspath(__file__)
+    srcDirPath = os.path.dirname(srcPath)
+    projectPath = srcDirPath.replace("\\src","")
+    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
 
-def get_puuid_by_riot_id(tagLine: str, gameName: str, apiKey: str) -> str:
-    url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
+    return stageFilePath
+
+def get_puuid_by_riot_id(tagLine: str, gameName: str, region: str, apiKey: str):
+    url = f"https://{region}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
     headers = {"X-Riot-Token": apiKey}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     data = response.json()
     return data.get("puuid")
 
-def get_summoner_data_by_puuid(puuid: str, apiKey: str) -> tuple:
-    url = f"https://br1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+def get_summoner_data_by_puuid(tagLine: str, puuid: str, apiKey: str):
+    url = f"https://{tagLine}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
     headers = {"X-Riot-Token": apiKey}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     data = response.json()
     return data.get("profileIconId"), data.get("revisionDate"), data.get("summonerLevel")
 
-def create_player_csv(file_path:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
-    with open(file_path, mode="w", newline="", encoding="utf-8") as file:
+def create_player_csv(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
+    with open(stageFilePath, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
         writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
     return
 
-def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, file_path:str, file_name: str):
-    if not os.path.exists(file_path.replace('\\'+file_name,'')):
-        os.makedirs(file_path.replace('\\'+file_name,''))
+def get_updated_rows(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
+    rows = []
+    with open(stageFilePath, mode="r", newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        updated = False
+        for row in reader:
+            if row["puuid"] == puuid:
+                row["gameName"] = gameName
+                row["tagLine"] = tagLine
+                row["profileIconId"] = str(profileIconId)
+                row["revisionDate"] = str(revisionDate)
+                row["summonerLevel"] = str(summonerLevel)
+                row["datetime"] = now
+                updated = True
+            rows.append(row)
+        if not updated:
+            newRow = {'puuid': puuid,
+                'gameName': gameName,
+                'tagLine': tagLine,
+                'profileIconId': str(profileIconId),
+                'revisionDate': str(revisionDate),
+                'summonerLevel': str(summonerLevel),
+                'datetime': now
+            }
+            rows.append(newRow)
+    return rows
+
+def update_player_csv(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
+    rows = get_updated_rows(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
     
-    file_exists = os.path.isfile(file_path)
+    with open(stageFilePath, mode="w", newline="", encoding="utf-8") as file:
+        columnNames = rows[0].keys()
+        writer = csv.DictWriter(file, fieldnames=columnNames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, stageFilePath:str):
+    stageFileDir = stageFilePath.replace("\\stage_player.csv","")
+    if not os.path.exists(stageFileDir):
+        os.makedirs(stageFileDir)
+    
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    if not file_exists:
-        create_player_csv(file_path, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
-        return
-
-    with open(file_path, mode="r", newline="", encoding="utf-8") as file:
-        reader = list(csv.reader(file))
-
-    header = reader[0]
-    rows = reader[1:]
-    updated = False
-
-    # Procura o puuid para atualizar
-    for row in rows:
-        if row[0] == puuid:
-            row[1] = gameName
-            row[2] = tagLine
-            row[3] = str(profileIconId)
-            row[4] = str(revisionDate)
-            row[5] = str(summonerLevel)
-            row[6] = now
-            updated = True
-            break
-
-    if not updated:
-        rows.append([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
-
-    with open(file_path, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(header)
-        writer.writerows(rows)
+    fileExists = os.path.isfile(stageFilePath)
+    if not fileExists:
+        create_player_csv(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
+    else:
+        update_player_csv(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
 
 if __name__ == "__main__":
     # How to run:
-    # python .\src\load_player.py --project_name riot_games_analytics --stage_file_name stage_player.csv --gameName OTalDoPedrinho --tagLine BR1 --apiKey <apiKey>
+    # python src\load_player.py --stageFileName stage_player.csv --gameName OTalDoPedrinho --tagLine BR1 --region americas --apiKey <apiKey>
     
-    project_name, stage_file_name, gameName, tagLine, apiKey = get_args()
-    project_path = get_project_path(project_name)
+    stageFileName, gameName, tagLine, region, apiKey = get_args()
 
-    stage_file_path = f"{project_path}\\data\\{stage_file_name}"
+    stageFilePath = get_project_paths(stageFileName)
 
-    puuid = get_puuid_by_riot_id(tagLine, gameName, apiKey)
-    profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(puuid, apiKey)
-    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, stage_file_path, stage_file_name)
+    puuid = get_puuid_by_riot_id(tagLine, gameName, region, apiKey)
+
+    profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(tagLine, puuid, apiKey)
+
+    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, stageFilePath)
