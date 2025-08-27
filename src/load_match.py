@@ -6,13 +6,13 @@ from datetime import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stageFileName", type=str)
-    parser.add_argument("--puuid", type=str)
+    parser.add_argument("--stagePlayerFileName", type=str)
+    parser.add_argument("--stageMatchFileName", type=str)
     parser.add_argument("--region", type=str)
     parser.add_argument("--apiKey", type=str)
 
     args = parser.parse_args()
-    return args.stageFileName, args.puuid, args.region, args.apiKey
+    return args.stagePlayerFileName, args.stageMatchFileName, args.region, args.apiKey
 
 def get_file_path(stageFileName:str):
     srcPath = os.path.abspath(__file__)
@@ -22,6 +22,16 @@ def get_file_path(stageFileName:str):
 
     return stageFilePath
 
+def get_puuids(stagePlayerFilePath: str):
+    puuids = []
+
+    with open(stagePlayerFilePath, mode="r", newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            puuids.append(row["puuid"])
+
+    return puuids
+
 def get_match_ids_by_puuid(puuid, region, apiKey):
     url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100&api_key={apiKey}"
     response = requests.get(url)
@@ -29,39 +39,46 @@ def get_match_ids_by_puuid(puuid, region, apiKey):
         raise Exception(f"{response.status_code} - {response.text}")
     return response.json()
 
-def get_matches_data(matchIds, region, apiKey, stageFileName):
-    matches_data = []
-    for matchId in matchIds:
-        file_exists = os.path.isfile(stageFileName)
-        matchIdExists = False
+def get_matches_data(matchIds, region, apiKey, stageMatchFilePath):
+    matchesData = []
+    fileExists = os.path.isfile(stageMatchFilePath)
 
-        if file_exists:
-            with open(stageFileName, mode="r", newline="", encoding="utf-8") as file:
+    if fileExists:
+        for matchId in matchIds:
+            matchIdExists = False
+            
+            with open(stageMatchFilePath, mode="r", newline="", encoding="utf-8") as file:
                 reader = list(csv.reader(file))
-
                 rows = reader[1:]
-
                 for row in rows:
                     if row[0] == matchId:
                         matchIdExists = True
-
-        if not matchIdExists:
+            
+            if not matchIdExists:
+                url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/{matchId}?api_key={apiKey}"
+                response = requests.get(url)
+                if response.status_code != 200:
+                    print(f"{matchId}: {response.status_code} - {response.text}")
+                else:
+                    matchesData.append(response.json())
+    else:
+        for matchId in matchIds:
             url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/{matchId}?api_key={apiKey}"
             response = requests.get(url)
             if response.status_code != 200:
                 print(f"{matchId}: {response.status_code} - {response.text}")
-                continue
-            matches_data.append(response.json())
-    return matches_data
+            else:
+                matchesData.append(response.json())
+    return matchesData
 
-def save_matches_to_csv(puuid, matches_data, stageFileName):
-    if not matches_data:
+def save_matches_to_csv(puuid, matchesData, stageMatchFilePath):
+    if not matchesData:
         return
 
-    if os.path.isfile(stageFileName):
-        with open(stageFileName, mode="a", newline="", encoding="utf-8") as file:
+    if os.path.isfile(stageMatchFilePath):
+        with open(stageMatchFilePath, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
-            for match in matches_data:
+            for match in matchesData:
                 playerIndexInMatch = -1
                 playerPuuids = match.get("metadata").get("participants")
 
@@ -93,10 +110,10 @@ def save_matches_to_csv(puuid, matches_data, stageFileName):
     else:
         headers = ["matchId","gameDuration","gameCreation","gameVersion","puuid","assists","deaths","kills","champLevel","championId","championName","goldEarned","individualPosition","totalDamageDealt","visionScore","win","datetime"]
 
-        with open(stageFileName, mode="w", newline="", encoding="utf-8") as file:
+        with open(stageMatchFilePath, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow(headers)
-            for match in matches_data:
+            for match in matchesData:
                 playerIndexInMatch = -1
                 playerPuuids = match.get("metadata").get("participants")
                 
@@ -125,17 +142,21 @@ def save_matches_to_csv(puuid, matches_data, stageFileName):
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
-def loadStageTable(puuid, region, apiKey, stageFilePath):
-    matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-    matches_data = get_matches_data(matchIds, region, apiKey, stageFilePath)
-    save_matches_to_csv(puuid, matches_data, stageFilePath)
+def loadStageTable(puuids, region, apiKey, stageMatchFilePath):
+    for puuid in puuids:
+        matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
+        matchesData = get_matches_data(matchIds, region, apiKey, stageMatchFilePath)
+        save_matches_to_csv(puuid, matchesData, stageMatchFilePath)
 
 if __name__ == "__main__":
     # How to run:
-    # python src\load_match.py --stageFileName stage_match.csv --puuid mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA --region americas --apiKey <apiKey>
+    # python src\load_match.py --stagePlayerFileName stage_player.csv --stageMatchFileName stage_match.csv --region americas --apiKey <apiKey>
     
-    stageFileName, puuid, region, apiKey = get_args()
+    stagePlayerFileName, stageMatchFileName, region, apiKey = get_args()
 
-    stageFilePath = get_file_path(stageFileName)
+    stagePlayerFilePath = get_file_path(stagePlayerFileName)
+    stageMatchFilePath = get_file_path(stageMatchFileName)
 
-    loadStageTable(puuid, region, apiKey, stageFilePath)
+    puuids = get_puuids(stagePlayerFilePath)
+
+    loadStageTable(puuids, region, apiKey, stageMatchFilePath)
