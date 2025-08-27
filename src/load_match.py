@@ -6,19 +6,21 @@ from datetime import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--project_name", type=str)
-    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--stageFileName", type=str)
     parser.add_argument("--puuid", type=str)
     parser.add_argument("--region", type=str)
     parser.add_argument("--apiKey", type=str)
-    args = parser.parse_args()
-    return args.project_name,args.stage_file_name,args.puuid,args.region,args.apiKey
 
-def get_project_path(project_name:str):
-    file_path = os.path.abspath(__file__)
-    dir_path = os.path.dirname(file_path)
-    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
-    return project_path
+    args = parser.parse_args()
+    return args.stageFileName, args.puuid, args.region, args.apiKey
+
+def get_project_path(stageFileName:str):
+    srcPath = os.path.abspath(__file__)
+    srcDirPath = os.path.dirname(srcPath)
+    projectPath = srcDirPath.replace("\\src","")
+    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
+
+    return stageFilePath
 
 def get_match_ids_by_puuid(puuid, region, apiKey):
     url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100&api_key={apiKey}"
@@ -123,18 +125,17 @@ def save_matches_to_csv(puuid, matches_data, filename):
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
-def loadStageTable(puuid, region, apiKey, stage_file_path):
+def loadStageTable(puuid, region, apiKey, stageFilePath):
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-    matches_data = get_matches_data(matchIds, region, apiKey, filename=stage_file_path)
-    save_matches_to_csv(puuid, matches_data, filename=stage_file_path)
+    matches_data = get_matches_data(matchIds, region, apiKey, filename=stageFilePath)
+    save_matches_to_csv(puuid, matches_data, filename=stageFilePath)
 
 if __name__ == "__main__":
     # How to run:
-    # python .\src\load_match.py --project_name riot_games_analytics --stage_file_name stage_match.csv --puuid mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA --region americas --apiKey <apiKey>
+    # python src\load_match.py --stageFileName stage_match.csv --puuid mz3C0mvreZqMH_Xe8s5Glc7dPuQbcQgUuy5q_NWvR7IC8yKYBqtYxiEtgn5tt_vio2ah9ORvJpu3DA --region americas --apiKey <apiKey>
     
-    project_name, stage_file_name, puuid, region, apiKey = get_args()
-    project_path = get_project_path(project_name)
-    
-    stage_file_path = f"{project_path}/data/{stage_file_name}"
+    stageFileName, puuid, region, apiKey = get_args()
 
-    loadStageTable(puuid, region, apiKey, stage_file_path)
+    stageFilePath = get_project_path(stageFileName)
+
+    loadStageTable(puuid, region, apiKey, stageFilePath)
