@@ -29,14 +29,14 @@ def get_match_ids_by_puuid(puuid, region, apiKey):
         raise Exception(f"{response.status_code} - {response.text}")
     return response.json()
 
-def get_matches_data(matchIds, region, apiKey, filename):
+def get_matches_data(matchIds, region, apiKey, stageFileName):
     matches_data = []
     for matchId in matchIds:
-        file_exists = os.path.isfile(filename)
+        file_exists = os.path.isfile(stageFileName)
         matchIdExists = False
 
         if file_exists:
-            with open(filename, mode="r", newline="", encoding="utf-8") as file:
+            with open(stageFileName, mode="r", newline="", encoding="utf-8") as file:
                 reader = list(csv.reader(file))
 
                 rows = reader[1:]
@@ -54,12 +54,12 @@ def get_matches_data(matchIds, region, apiKey, filename):
             matches_data.append(response.json())
     return matches_data
 
-def save_matches_to_csv(puuid, matches_data, filename):
+def save_matches_to_csv(puuid, matches_data, stageFileName):
     if not matches_data:
         return
 
-    if os.path.isfile(filename):
-        with open(filename, mode="a", newline="", encoding="utf-8") as file:
+    if os.path.isfile(stageFileName):
+        with open(stageFileName, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             for match in matches_data:
                 playerIndexInMatch = -1
@@ -93,7 +93,7 @@ def save_matches_to_csv(puuid, matches_data, filename):
     else:
         headers = ["matchId","gameDuration","gameCreation","gameVersion","puuid","assists","deaths","kills","champLevel","championId","championName","goldEarned","individualPosition","totalDamageDealt","visionScore","win","datetime"]
 
-        with open(filename, mode="w", newline="", encoding="utf-8") as file:
+        with open(stageFileName, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow(headers)
             for match in matches_data:
@@ -127,8 +127,8 @@ def save_matches_to_csv(puuid, matches_data, filename):
 
 def loadStageTable(puuid, region, apiKey, stageFilePath):
     matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-    matches_data = get_matches_data(matchIds, region, apiKey, filename=stageFilePath)
-    save_matches_to_csv(puuid, matches_data, filename=stageFilePath)
+    matches_data = get_matches_data(matchIds, region, apiKey, stageFilePath)
+    save_matches_to_csv(puuid, matches_data, stageFilePath)
 
 if __name__ == "__main__":
     # How to run:
