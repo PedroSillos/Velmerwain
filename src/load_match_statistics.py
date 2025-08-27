@@ -11,7 +11,7 @@ def get_args():
     args = parser.parse_args()
     return args.project_name,args.stage_file_name,args.stats_file_name
 
-def get_project_path(project_name:str):
+def get_file_path(project_name:str):
     file_path = os.path.abspath(__file__)
     dir_path = os.path.dirname(file_path)
     project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # python .\src\load_match_statistics.py --project_name riot_games_analytics --stage_file_name stage_match.csv --stats_file_name match_stats.csv
     
     project_name, stage_file_name, stats_file_name = get_args()
-    project_path = get_project_path(project_name)
+    project_path = get_file_path(project_name)
     stage_file_path = f"{project_path}/data/{stage_file_name}"
     stats_file_path = f"{project_path}/data/{stats_file_name}"
 

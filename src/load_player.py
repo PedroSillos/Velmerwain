@@ -15,7 +15,7 @@ def get_args():
     args = parser.parse_args()
     return args.stageFileName, args.gameName, args.tagLine, args.region, args.apiKey
 
-def get_project_path(stageFileName:str):
+def get_file_path(stageFileName:str):
     srcPath = os.path.abspath(__file__)
     srcDirPath = os.path.dirname(srcPath)
     projectPath = srcDirPath.replace("\\src","")
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     
     stageFileName, gameName, tagLine, region, apiKey = get_args()
 
-    stageFilePath = get_project_path(stageFileName)
+    stageFilePath = get_file_path(stageFileName)
 
     puuid = get_puuid_by_riot_id(tagLine, gameName, region, apiKey)
 

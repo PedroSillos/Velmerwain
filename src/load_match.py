@@ -14,7 +14,7 @@ def get_args():
     args = parser.parse_args()
     return args.stageFileName, args.puuid, args.region, args.apiKey
 
-def get_project_path(stageFileName:str):
+def get_file_path(stageFileName:str):
     srcPath = os.path.abspath(__file__)
     srcDirPath = os.path.dirname(srcPath)
     projectPath = srcDirPath.replace("\\src","")
@@ -136,6 +136,6 @@ if __name__ == "__main__":
     
     stageFileName, puuid, region, apiKey = get_args()
 
-    stageFilePath = get_project_path(stageFileName)
+    stageFilePath = get_file_path(stageFileName)
 
     loadStageTable(puuid, region, apiKey, stageFilePath)
