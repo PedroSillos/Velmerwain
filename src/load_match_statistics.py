@@ -5,20 +5,22 @@ import pandas as pd
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--project_name", type=str)
-    parser.add_argument("--stage_file_name", type=str)
-    parser.add_argument("--stats_file_name", type=str)
+    parser.add_argument("--stageMatchFileName", type=str)
+    parser.add_argument("--statsMatchFileName", type=str)
+    
     args = parser.parse_args()
-    return args.project_name,args.stage_file_name,args.stats_file_name
+    return args.stageMatchFileName, args.statsMatchFileName
 
-def get_file_path(project_name:str):
-    file_path = os.path.abspath(__file__)
-    dir_path = os.path.dirname(file_path)
-    project_path = dir_path[:dir_path.index(project_name)+len(project_name)]
-    return project_path
+def get_file_path(stageFileName:str):
+    srcPath = os.path.abspath(__file__)
+    srcDirPath = os.path.dirname(srcPath)
+    projectPath = srcDirPath.replace("\\src","")
+    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
 
-def loadMatchStatsTable(stage_file_path,stats_file_path):
-    df_match_stage = pd.read_csv(stage_file_path)
+    return stageFilePath
+
+def loadMatchStatsTable(stageMatchFilePath,statsMatchFilePath):
+    df_match_stage = pd.read_csv(stageMatchFilePath)
 
     df_match_stage['gameVersion'] = df_match_stage['gameVersion'].str.split('.').str[:2].str.join('.')
 
@@ -45,15 +47,15 @@ def loadMatchStatsTable(stage_file_path,stats_file_path):
 
     df_calc_stats["modifiedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    df_calc_stats.to_csv(stats_file_path, index=False)
+    df_calc_stats.to_csv(statsMatchFilePath, index=False)
 
 if __name__ == "__main__":
     # How to run:
-    # python .\src\load_match_statistics.py --project_name riot_games_analytics --stage_file_name stage_match.csv --stats_file_name match_stats.csv
+    # python src\load_match_statistics.py --stageMatchFileName stage_match.csv --statsMatchFileName match_stats.csv
     
-    project_name, stage_file_name, stats_file_name = get_args()
-    project_path = get_file_path(project_name)
-    stage_file_path = f"{project_path}/data/{stage_file_name}"
-    stats_file_path = f"{project_path}/data/{stats_file_name}"
+    stageMatchFileName, statsMatchFileName = get_args()
 
-    loadMatchStatsTable(stage_file_path,stats_file_path)
+    stageMatchFilePath = get_file_path(stageMatchFileName)
+    statsMatchFilePath = get_file_path(statsMatchFileName)
+
+    loadMatchStatsTable(stageMatchFilePath,statsMatchFilePath)
