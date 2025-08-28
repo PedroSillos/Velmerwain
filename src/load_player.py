@@ -18,8 +18,8 @@ def get_args():
 def get_file_path(stageFileName:str):
     srcPath = os.path.abspath(__file__)
     srcDirPath = os.path.dirname(srcPath)
-    projectPath = srcDirPath.replace("\\src","")
-    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
+    projectPath = srcDirPath.replace("/src","")
+    stageFilePath = f"{projectPath}/data/{stageFileName}"
 
     return stageFilePath
 
@@ -83,7 +83,7 @@ def update_player_csv(stageFilePath:str, puuid: str, gameName: str, tagLine: str
         writer.writerows(rows)
 
 def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, stageFilePath:str):
-    stageFileDir = stageFilePath.replace("\\stage_player.csv","")
+    stageFileDir = stageFilePath.replace("/stage_player.csv","")
     if not os.path.exists(stageFileDir):
         os.makedirs(stageFileDir)
     
