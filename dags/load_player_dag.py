@@ -12,7 +12,14 @@ def load_player_dag(apiKey: str):
         script_name = "load_player.py"
         script_path = f"{project_path}/src/{script_name}"
         
-        command = f"python {script_path} --stageFileName stage_player.csv --gameName OTalDoPedrinho --tagLine BR1 --region americas --apiKey {apiKey}"
+        command = f"""
+            python {script_path} \
+                --stageFileName stage_player.csv \
+                --gameName OTalDoPedrinho \
+                --tagLine BR1 \
+                --region americas \
+                --apiKey {apiKey}
+        """
 
         if os.path.exists(script_path):
             return command
