@@ -6,105 +6,139 @@ from datetime import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stageFileName", type=str)
-    parser.add_argument("--gameName", type=str)
-    parser.add_argument("--tagLine", type=str)
-    parser.add_argument("--region", type=str)
-    parser.add_argument("--apiKey", type=str)
+    parser.add_argument("--stage_file_name", type=str)
+    parser.add_argument("--game_name", type=str)
+    parser.add_argument("--tag_line", type=str)
+    parser.add_argument("--api_key", type=str)
 
     args = parser.parse_args()
-    return args.stageFileName, args.gameName, args.tagLine, args.region, args.apiKey
+    return args.stage_file_name, args.game_name, args.tag_line, args.api_key
 
-def get_file_path(stageFileName:str):
-    srcPath = os.path.abspath(__file__)
-    srcDirPath = os.path.dirname(srcPath)
-    projectPath = srcDirPath.replace("/src","")
-    stageFilePath = f"{projectPath}/data/{stageFileName}"
+def get_file_path(stage_file_name: str):
+    src_path = os.path.abspath(__file__)
+    src_dir_path = os.path.dirname(src_path)
+    project_path = src_dir_path.replace("/src","")
+    stage_file_path = f"{project_path}/data/{stage_file_name}"
 
-    return stageFilePath
+    return stage_file_path
 
-def get_puuid_by_riot_id(tagLine: str, gameName: str, region: str, apiKey: str):
-    url = f"https://{region}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
-    headers = {"X-Riot-Token": apiKey}
+def get_puuid_by_riot_id(game_name: str, tag_line: str, api_key: str):
+    url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+    headers = {"X-Riot-Token": api_key}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     data = response.json()
     return data.get("puuid")
 
-def get_summoner_data_by_puuid(tagLine: str, puuid: str, apiKey: str):
-    url = f"https://{tagLine}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-    headers = {"X-Riot-Token": apiKey}
+def get_summoner_data_by_puuid(tag_line: str, puuid: str, api_key: str):
+    url = f"https://{tag_line}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+    headers = {"X-Riot-Token": api_key}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     data = response.json()
     return data.get("profileIconId"), data.get("revisionDate"), data.get("summonerLevel")
 
-def create_player_csv(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
-    with open(stageFilePath, mode="w", newline="", encoding="utf-8") as file:
+def create_player_csv(
+    stage_file_path:str,
+    puuid: str,
+    game_name: str,
+    tag_line: str,
+    profile_icon_id: int,
+    revision_date: int,
+    summoner_level: int,
+    now:str
+):
+    with open(stage_file_path, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        writer.writerow(["puuid", "gameName", "tagLine", "profileIconId", "revisionDate", "summonerLevel", "datetime"])
-        writer.writerow([puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now])
+        writer.writerow(["puuid", "game_name", "tag_line", "profile_icon_id", "revision_date", "summoner_level", "datetime"])
+        writer.writerow([puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, now])
     return
 
-def get_updated_rows(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
+def get_updated_rows(
+    stage_file_path:str,
+    puuid: str,
+    game_name: str,
+    tag_line: str,
+    profile_icon_id: int,
+    revision_date: int,
+    summoner_level: int,
+    now:str
+):
     rows = []
-    with open(stageFilePath, mode="r", newline="", encoding="utf-8") as file:
+    with open(stage_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         updated = False
         for row in reader:
             if row["puuid"] == puuid:
-                row["gameName"] = gameName
-                row["tagLine"] = tagLine
-                row["profileIconId"] = str(profileIconId)
-                row["revisionDate"] = str(revisionDate)
-                row["summonerLevel"] = str(summonerLevel)
+                row["game_name"] = game_name
+                row["tag_line"] = tag_line
+                row["profile_icon_id"] = str(profile_icon_id)
+                row["revision_date"] = str(revision_date)
+                row["summoner_level"] = str(summoner_level)
                 row["datetime"] = now
                 updated = True
             rows.append(row)
         if not updated:
-            newRow = {'puuid': puuid,
-                'gameName': gameName,
-                'tagLine': tagLine,
-                'profileIconId': str(profileIconId),
-                'revisionDate': str(revisionDate),
-                'summonerLevel': str(summonerLevel),
-                'datetime': now
+            newRow = {"puuid": puuid,
+                "game_name": game_name,
+                "tag_line": tag_line,
+                "profile_icon_id": str(profile_icon_id),
+                "revision_date": str(revision_date),
+                "summoner_level": str(summoner_level),
+                "datetime": now
             }
             rows.append(newRow)
     return rows
 
-def update_player_csv(stageFilePath:str, puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, now:str):
-    rows = get_updated_rows(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
+def update_player_csv(
+    stage_file_path:str,
+    puuid: str,
+    game_name: str,
+    tag_line: str,
+    profile_icon_id: int,
+    revision_date: int,
+    summoner_level: int,
+    now:str
+):
+    rows = get_updated_rows(stage_file_path, puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, now)
     
-    with open(stageFilePath, mode="w", newline="", encoding="utf-8") as file:
-        columnNames = rows[0].keys()
-        writer = csv.DictWriter(file, fieldnames=columnNames)
+    with open(stage_file_path, mode="w", newline="", encoding="utf-8") as file:
+        column_names = rows[0].keys()
+        writer = csv.DictWriter(file, fieldnames=column_names)
         writer.writeheader()
         writer.writerows(rows)
 
-def save_player_to_csv(puuid: str, gameName: str, tagLine: str, profileIconId: int, revisionDate: int, summonerLevel: int, stageFilePath:str):
-    stageFileDir = stageFilePath.replace("/stage_player.csv","")
-    if not os.path.exists(stageFileDir):
-        os.makedirs(stageFileDir)
+def save_player_to_csv(
+    puuid: str,
+    game_name: str,
+    tag_line: str,
+    profile_icon_id: int,
+    revision_date: int,
+    summoner_level: int,
+    stage_file_path:str
+):
+    stage_file_dir = stage_file_path.replace("/stage_player.csv","")
+    if not os.path.exists(stage_file_dir):
+        os.makedirs(stage_file_dir)
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    fileExists = os.path.isfile(stageFilePath)
-    if not fileExists:
-        create_player_csv(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
+    file_exists = os.path.isfile(stage_file_path)
+    if not file_exists:
+        create_player_csv(stage_file_path, puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, now)
     else:
-        update_player_csv(stageFilePath, puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, now)
+        update_player_csv(stage_file_path, puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, now)
 
 if __name__ == "__main__":
     # How to run:
-    # python src\load_player.py --stageFileName stage_player.csv --gameName OTalDoPedrinho --tagLine BR1 --region americas --apiKey <apiKey>
+    # python [...]/load_player.py --stage_file_name stage_player.csv --game_name OTalDoPedrinho --tag_line BR1 --api_key <api_key>
     
-    stageFileName, gameName, tagLine, region, apiKey = get_args()
+    stage_file_name, game_name, tag_line, api_key = get_args()
 
-    stageFilePath = get_file_path(stageFileName)
+    stage_file_path = get_file_path(stage_file_name)
 
-    puuid = get_puuid_by_riot_id(tagLine, gameName, region, apiKey)
+    puuid = get_puuid_by_riot_id(game_name, tag_line, api_key)
 
-    profileIconId, revisionDate, summonerLevel = get_summoner_data_by_puuid(tagLine, puuid, apiKey)
+    profile_icon_id, revision_date, summoner_level = get_summoner_data_by_puuid(tag_line, puuid, api_key)
 
-    save_player_to_csv(puuid, gameName, tagLine, profileIconId, revisionDate, summonerLevel, stageFilePath)
+    save_player_to_csv(puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, stage_file_path)
