@@ -6,85 +6,83 @@ from datetime import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stagePlayerFileName", type=str)
-    parser.add_argument("--stageMatchFileName", type=str)
-    parser.add_argument("--region", type=str)
-    parser.add_argument("--apiKey", type=str)
+    parser.add_argument("--stage_player_file_name", type=str)
+    parser.add_argument("--stage_match_file_name", type=str)
+    parser.add_argument("--api_key", type=str)
 
     args = parser.parse_args()
-    return args.stagePlayerFileName, args.stageMatchFileName, args.region, args.apiKey
+    return args.stage_player_file_name, args.stage_match_file_name, args.api_key
 
-def get_file_path(stageFileName:str):
-    srcPath = os.path.abspath(__file__)
-    srcDirPath = os.path.dirname(srcPath)
-    projectPath = srcDirPath.replace("\\src","")
-    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
+def get_file_path(stage_file_name: str):
+    src_path = os.path.abspath(__file__)
+    src_dir_path = os.path.dirname(src_path)
+    project_path = src_dir_path.replace("/src","")
+    stage_file_path = f"{project_path}/data/{stage_file_name}"
 
-    return stageFilePath
+    return stage_file_path
 
-def get_puuids(stagePlayerFilePath: str):
+def get_puuids(stage_player_file_path: str):
     puuids = []
 
-    with open(stagePlayerFilePath, mode="r", newline="", encoding="utf-8") as file:
+    with open(stage_player_file_path, mode="r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         for row in reader:
             puuids.append(row["puuid"])
 
     return puuids
 
-def get_match_ids_by_puuid(puuid, region, apiKey):
-    url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100&api_key={apiKey}"
+def get_match_ids_by_puuid(puuid, api_key):
+    url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100&api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception(f"{response.status_code} - {response.text}")
     return response.json()
 
-def get_matches_data(matchIds, region, apiKey, stageMatchFilePath):
-    matchesData = []
-    fileExists = os.path.isfile(stageMatchFilePath)
+def get_match_data(match_ids, api_key, stage_match_file_path):
+    matches_data = []
 
-    if fileExists:
-        for matchId in matchIds:
-            matchIdExists = False
+    if os.path.isfile(stage_match_file_path):
+        for match_id in match_ids:
+            match_id_exists = False
             
-            with open(stageMatchFilePath, mode="r", newline="", encoding="utf-8") as file:
+            with open(stage_match_file_path, mode="r", newline="", encoding="utf-8") as file:
                 reader = list(csv.reader(file))
                 rows = reader[1:]
                 for row in rows:
-                    if row[0] == matchId:
-                        matchIdExists = True
+                    if row[0] == match_id:
+                        match_id_exists = True
             
-            if not matchIdExists:
-                url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/{matchId}?api_key={apiKey}"
+            if not match_id_exists:
+                url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
                 response = requests.get(url)
                 if response.status_code != 200:
-                    print(f"{matchId}: {response.status_code} - {response.text}")
+                    print(f"{match_id}: {response.status_code} - {response.text}")
                 else:
-                    matchesData.append(response.json())
+                    matches_data.append(response.json())
     else:
-        for matchId in matchIds:
-            url = f"https://{region}.api.riotgames.com/lol/match/v5/matches/{matchId}?api_key={apiKey}"
+        for match_id in match_ids:
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}?api_key={api_key}"
             response = requests.get(url)
             if response.status_code != 200:
-                print(f"{matchId}: {response.status_code} - {response.text}")
+                print(f"{match_id}: {response.status_code} - {response.text}")
             else:
-                matchesData.append(response.json())
-    return matchesData
+                matches_data.append(response.json())
+    return matches_data
 
-def save_matches_to_csv(puuid, matchesData, stageMatchFilePath):
-    if not matchesData:
+def save_matches_to_csv(puuid, matches_data, stage_match_file_path):
+    if not matches_data:
         return
 
-    if os.path.isfile(stageMatchFilePath):
-        with open(stageMatchFilePath, mode="a", newline="", encoding="utf-8") as file:
+    if os.path.isfile(stage_match_file_path):
+        with open(stage_match_file_path, mode="a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
-            for match in matchesData:
-                playerIndexInMatch = -1
-                playerPuuids = match.get("metadata").get("participants")
+            for match in matches_data:
+                player_index_in_match = -1
+                player_puuids = match.get("metadata").get("participants")
 
-                for playerPuuid in playerPuuids:
-                    if playerPuuid == puuid:
-                        playerIndexInMatch = playerPuuids.index(puuid)
+                for player_puuid in player_puuids:
+                    if player_puuid == puuid:
+                        player_index_in_match = player_puuids.index(puuid)
                 
                 info = match.get("info")
                 writer.writerow([
@@ -92,34 +90,34 @@ def save_matches_to_csv(puuid, matchesData, stageMatchFilePath):
                     info.get("gameDuration"),
                     info.get("gameCreation"),
                     info.get("gameVersion"),
-                    info.get("participants")[playerIndexInMatch].get("puuid"),
-                    info.get("participants")[playerIndexInMatch].get("assists"),
-                    info.get("participants")[playerIndexInMatch].get("deaths"),
-                    info.get("participants")[playerIndexInMatch].get("kills"),
-                    info.get("participants")[playerIndexInMatch].get("champLevel"),
-                    info.get("participants")[playerIndexInMatch].get("championId"),
-                    info.get("participants")[playerIndexInMatch].get("championName"),
-                    info.get("participants")[playerIndexInMatch].get("goldEarned"),
-                    info.get("participants")[playerIndexInMatch].get("individualPosition"),
-                    info.get("participants")[playerIndexInMatch].get("totalDamageDealt"),
-                    info.get("participants")[playerIndexInMatch].get("visionScore"),
-                    info.get("participants")[playerIndexInMatch].get("win"),
+                    info.get("participants")[player_index_in_match].get("puuid"),
+                    info.get("participants")[player_index_in_match].get("assists"),
+                    info.get("participants")[player_index_in_match].get("deaths"),
+                    info.get("participants")[player_index_in_match].get("kills"),
+                    info.get("participants")[player_index_in_match].get("champLevel"),
+                    info.get("participants")[player_index_in_match].get("championId"),
+                    info.get("participants")[player_index_in_match].get("championName"),
+                    info.get("participants")[player_index_in_match].get("goldEarned"),
+                    info.get("participants")[player_index_in_match].get("individualPosition"),
+                    info.get("participants")[player_index_in_match].get("totalDamageDealt"),
+                    info.get("participants")[player_index_in_match].get("visionScore"),
+                    info.get("participants")[player_index_in_match].get("win"),
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
     else:
-        headers = ["matchId","gameDuration","gameCreation","gameVersion","puuid","assists","deaths","kills","champLevel","championId","championName","goldEarned","individualPosition","totalDamageDealt","visionScore","win","datetime"]
+        headers = ["match_id","game_duration","game_creation","game_version","puuid","assists","deaths","kills","champ_level","champion_id","champion_name","gold_earned","individual_position","total_damage_dealt","vision_score","win","datetime"]
 
-        with open(stageMatchFilePath, mode="w", newline="", encoding="utf-8") as file:
+        with open(stage_match_file_path, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow(headers)
-            for match in matchesData:
-                playerIndexInMatch = -1
-                playerPuuids = match.get("metadata").get("participants")
+            for match in matches_data:
+                player_index_in_match = -1
+                player_puuids = match.get("metadata").get("participants")
                 
-                for playerPuuid in playerPuuids:
-                    if playerPuuid == puuid:
-                        playerIndexInMatch = playerPuuids.index(puuid)
+                for player_puuid in player_puuids:
+                    if player_puuid == puuid:
+                        player_index_in_match = player_puuids.index(puuid)
 
                 info = match.get("info")
                 writer.writerow([
@@ -127,36 +125,36 @@ def save_matches_to_csv(puuid, matchesData, stageMatchFilePath):
                     info.get("gameDuration"),
                     info.get("gameCreation"),
                     info.get("gameVersion"),
-                    info.get("participants")[playerIndexInMatch].get("puuid"),
-                    info.get("participants")[playerIndexInMatch].get("assists"),
-                    info.get("participants")[playerIndexInMatch].get("deaths"),
-                    info.get("participants")[playerIndexInMatch].get("kills"),
-                    info.get("participants")[playerIndexInMatch].get("champLevel"),
-                    info.get("participants")[playerIndexInMatch].get("championId"),
-                    info.get("participants")[playerIndexInMatch].get("championName"),
-                    info.get("participants")[playerIndexInMatch].get("goldEarned"),
-                    info.get("participants")[playerIndexInMatch].get("individualPosition"),
-                    info.get("participants")[playerIndexInMatch].get("totalDamageDealt"),
-                    info.get("participants")[playerIndexInMatch].get("visionScore"),
-                    info.get("participants")[playerIndexInMatch].get("win"),
+                    info.get("participants")[player_index_in_match].get("puuid"),
+                    info.get("participants")[player_index_in_match].get("assists"),
+                    info.get("participants")[player_index_in_match].get("deaths"),
+                    info.get("participants")[player_index_in_match].get("kills"),
+                    info.get("participants")[player_index_in_match].get("champLevel"),
+                    info.get("participants")[player_index_in_match].get("championId"),
+                    info.get("participants")[player_index_in_match].get("championName"),
+                    info.get("participants")[player_index_in_match].get("goldEarned"),
+                    info.get("participants")[player_index_in_match].get("individualPosition"),
+                    info.get("participants")[player_index_in_match].get("totalDamageDealt"),
+                    info.get("participants")[player_index_in_match].get("visionScore"),
+                    info.get("participants")[player_index_in_match].get("win"),
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
-def loadStageTable(puuids, region, apiKey, stageMatchFilePath):
+def load_stage_table(puuids, api_key, stage_match_file_path):
     for puuid in puuids:
-        matchIds = get_match_ids_by_puuid(puuid, region, apiKey)
-        matchesData = get_matches_data(matchIds, region, apiKey, stageMatchFilePath)
-        save_matches_to_csv(puuid, matchesData, stageMatchFilePath)
+        match_ids = get_match_ids_by_puuid(puuid, api_key)
+        matches_data = get_match_data(match_ids, api_key, stage_match_file_path)
+        save_matches_to_csv(puuid, matches_data, stage_match_file_path)
 
 if __name__ == "__main__":
     # How to run:
-    # python src\load_match.py --stagePlayerFileName stage_player.csv --stageMatchFileName stage_match.csv --region americas --apiKey <apiKey>
+    # python [...]/load_match.py --stage_player_file_name stage_player.csv --stage_match_file_name stage_match.csv --api_key <api_key>
     
-    stagePlayerFileName, stageMatchFileName, region, apiKey = get_args()
+    stage_player_file_name, stage_match_file_name, api_key = get_args()
 
-    stagePlayerFilePath = get_file_path(stagePlayerFileName)
-    stageMatchFilePath = get_file_path(stageMatchFileName)
+    stage_player_file_path = get_file_path(stage_player_file_name)
+    stage_match_file_path = get_file_path(stage_match_file_name)
 
-    puuids = get_puuids(stagePlayerFilePath)
+    puuids = get_puuids(stage_player_file_path)
 
-    loadStageTable(puuids, region, apiKey, stageMatchFilePath)
+    load_stage_table(puuids, api_key, stage_match_file_path)
