@@ -5,57 +5,57 @@ import pandas as pd
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stageMatchFileName", type=str)
-    parser.add_argument("--statsMatchFileName", type=str)
+    parser.add_argument("--stage_match_file_name", type=str)
+    parser.add_argument("--stats_match_file_name", type=str)
     
     args = parser.parse_args()
-    return args.stageMatchFileName, args.statsMatchFileName
+    return args.stage_match_file_name, args.stats_match_file_name
 
-def get_file_path(stageFileName:str):
-    srcPath = os.path.abspath(__file__)
-    srcDirPath = os.path.dirname(srcPath)
-    projectPath = srcDirPath.replace("\\src","")
-    stageFilePath = f"{projectPath}\\data\\{stageFileName}"
+def get_file_path(stage_file_name: str):
+    src_path = os.path.abspath(__file__)
+    src_dir_path = os.path.dirname(src_path)
+    project_path = src_dir_path.replace("/src", "")
+    stage_file_path = f"{project_path}/data/{stage_file_name}"
 
-    return stageFilePath
+    return stage_file_path
 
-def loadMatchStatsTable(stageMatchFilePath,statsMatchFilePath):
-    df_match_stage = pd.read_csv(stageMatchFilePath)
+def load_match_stats_table(stage_match_file_path, stats_match_file_path):
+    df_match_stage = pd.read_csv(stage_match_file_path)
 
-    df_match_stage['gameVersion'] = df_match_stage['gameVersion'].str.split('.').str[:2].str.join('.')
+    df_match_stage['game_version'] = df_match_stage['game_version'].str.split('.').str[:2].str.join('.')
 
-    key_columns = ["puuid", "gameVersion", "individualPosition", "championName"]
+    key_columns = ["puuid", "game_version", "individual_position", "champion_name"]
     
     df_calc_stats = df_match_stage.groupby(key_columns).agg(
-        matchs=("championName", lambda x: x.count()),
-        winRate=("win", lambda x: f"{x.mean() * 100:.2f}%"),
-        KDA=(
+        matchs=("champion_name", lambda x: x.count()),
+        win_rate=("win", lambda x: f"{x.mean() * 100:.2f}%"),
+        kda=(
               "kills",
               lambda x: (
                 (df_match_stage.loc[x.index, "kills"] + df_match_stage.loc[x.index, "assists"])
                 / df_match_stage.loc[x.index, "deaths"]).mean()
         ),
-        averageKills=("kills", "mean"),
-        averageDeaths=("deaths", "mean"),
-        averageAssists=("assists", "mean"),
-        averageGoldEarned=("goldEarned", "mean"),
-        averageDamageDealt=("totalDamageDealt", "mean"),
-        averageChampLevel=("champLevel", "mean"),
-        averageVisionScore=("visionScore", "mean"),
-        averageGameDuration=("gameDuration", lambda x: x.mean() / 60.00)
+        average_kills=("kills", "mean"),
+        average_deaths=("deaths", "mean"),
+        average_assists=("assists", "mean"),
+        average_gold_earned=("gold_earned", "mean"),
+        average_damage_dealt=("total_damage_dealt", "mean"),
+        average_champ_level=("champ_level", "mean"),
+        average_vision_score=("vision_score", "mean"),
+        average_game_duration=("game_duration", lambda x: x.mean() / 60.00)
     ).reset_index()
 
-    df_calc_stats["modifiedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    df_calc_stats["modified_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    df_calc_stats.to_csv(statsMatchFilePath, index=False)
+    df_calc_stats.to_csv(stats_match_file_path, index=False)
 
 if __name__ == "__main__":
     # How to run:
-    # python src\load_match_statistics.py --stageMatchFileName stage_match.csv --statsMatchFileName match_stats.csv
+    # python [...]/load_match_statistics.py --stage_match_file_name stage_match.csv --stats_match_file_name match_stats.csv
     
-    stageMatchFileName, statsMatchFileName = get_args()
+    stage_match_file_name, stats_match_file_name = get_args()
 
-    stageMatchFilePath = get_file_path(stageMatchFileName)
-    statsMatchFilePath = get_file_path(statsMatchFileName)
+    stage_match_file_path = get_file_path(stage_match_file_name)
+    stats_match_file_path = get_file_path(stats_match_file_name)
 
-    loadMatchStatsTable(stageMatchFilePath,statsMatchFilePath)
+    load_match_stats_table(stage_match_file_path, stats_match_file_path)
