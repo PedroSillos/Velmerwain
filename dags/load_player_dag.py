@@ -9,10 +9,10 @@ def get_script_path(script_name: str):
     return script_path
 
 @dag
-def load_player_dag(game_name: str, tag_line: str, api_key: str):
+def load_player_dag(game_name: str, tag_line: str, region_name: str, api_key: str):
     
     @task.bash
-    def load_player(game_name: str, tag_line: str, api_key: str):
+    def load_player(game_name: str, tag_line: str, region_name: str, api_key: str):
         script_path = get_script_path("load_player.py")
         stage_file_name = "stage_player.csv"
         
@@ -21,6 +21,7 @@ def load_player_dag(game_name: str, tag_line: str, api_key: str):
                 --stage_file_name {stage_file_name} \
                 --game_name {game_name} \
                 --tag_line {tag_line} \
+                --region_name '{region_name}' \
                 --api_key {api_key} \
         """
 
@@ -28,10 +29,11 @@ def load_player_dag(game_name: str, tag_line: str, api_key: str):
             return command
         return
 
-    load_player(game_name, tag_line, api_key)
+    load_player(game_name, tag_line, region_name, api_key)
 
 load_player_dag(
     game_name="{{ var.value.game_name }}",
     tag_line="{{ var.value.tag_line }}",
+    region_name="{{ var.value.region_name }}",
     api_key="{{ var.value.api_key }}"
 )

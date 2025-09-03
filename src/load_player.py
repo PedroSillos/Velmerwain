@@ -9,10 +9,11 @@ def get_args():
     parser.add_argument("--stage_file_name", type=str)
     parser.add_argument("--game_name", type=str)
     parser.add_argument("--tag_line", type=str)
+    parser.add_argument("--region_name", type=str)
     parser.add_argument("--api_key", type=str)
 
     args = parser.parse_args()
-    return args.stage_file_name, args.game_name, args.tag_line, args.api_key
+    return args.stage_file_name, args.game_name, args.tag_line, args.region_name, args.api_key
 
 def get_file_path(stage_file_name: str):
     src_path = os.path.abspath(__file__)
@@ -22,6 +23,30 @@ def get_file_path(stage_file_name: str):
 
     return stage_file_path
 
+def get_region_code(region_name: str):
+
+    regions_map = {
+        "Brazil": "br1",
+        "Europe Nordic": "eun1",
+        "Europe West": "euw1",
+        "Japan": "jp1",
+        "Korea": "kr",
+        "Latin America North": "la1",
+        "Latin America South": "la2",
+        "Middle East": "me1",
+        "North America": "na1",
+        "Oceania": "oc1",
+        "Russia": "ru",
+        "Southeast Asia": "sg2",
+        "Turkey": "tr1",
+        "Taiwan": "tw2",
+        "Vietnam": "vn2"
+    }
+
+    region_code = regions_map[region_name]
+
+    return region_code
+
 def get_puuid_by_riot_id(game_name: str, tag_line: str, api_key: str):
     url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
     headers = {"X-Riot-Token": api_key}
@@ -30,8 +55,8 @@ def get_puuid_by_riot_id(game_name: str, tag_line: str, api_key: str):
     data = response.json()
     return data.get("puuid")
 
-def get_summoner_data_by_puuid(tag_line: str, puuid: str, api_key: str):
-    url = f"https://{tag_line}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+def get_summoner_data_by_puuid(tag_line: str, puuid: str, region_code:str, api_key: str):
+    url = f"https://{region_code}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
     headers = {"X-Riot-Token": api_key}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
@@ -131,14 +156,16 @@ def save_player_to_csv(
 
 if __name__ == "__main__":
     # How to run:
-    # python [...]/load_player.py --stage_file_name stage_player.csv --game_name OTalDoPedrinho --tag_line BR1 --api_key <api_key>
+    # python [...]/load_player.py --stage_file_name stage_player.csv --game_name OTalDoPedrinho --tag_line BR1 --region_name Brazil --api_key <api_key>
     
-    stage_file_name, game_name, tag_line, api_key = get_args()
+    stage_file_name, game_name, tag_line, region_name, api_key = get_args()
 
     stage_file_path = get_file_path(stage_file_name)
 
+    region_code = get_region_code(region_name)
+
     puuid = get_puuid_by_riot_id(game_name, tag_line, api_key)
 
-    profile_icon_id, revision_date, summoner_level = get_summoner_data_by_puuid(tag_line, puuid, api_key)
+    profile_icon_id, revision_date, summoner_level = get_summoner_data_by_puuid(tag_line, puuid, region_code, api_key)
 
     save_player_to_csv(puuid, game_name, tag_line, profile_icon_id, revision_date, summoner_level, stage_file_path)
