@@ -8,7 +8,7 @@ def get_script_path(script_name: str):
     script_path = f"{project_path}/src/{script_name}"
     return script_path
 
-@dag
+@dag(schedule="*/10 * * * *")
 def load_match_stats_dag():
     
     @task.bash
