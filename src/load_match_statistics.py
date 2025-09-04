@@ -39,7 +39,7 @@ def load_match_stats_table(stage_match_file_path, stats_match_file_path):
         average_deaths=("deaths", "mean"),
         average_assists=("assists", "mean"),
         average_gold_earned=("gold_earned", "mean"),
-        average_damage_dealt=("total_damage_dealt", "mean"),
+        average_damage_dealt_to_champions=("total_damage_dealt_to_champions", "mean"),
         average_champ_level=("champ_level", "mean"),
         average_vision_score=("vision_score", "mean"),
         average_game_duration=("game_duration", lambda x: x.mean() / 60.00)

@@ -99,14 +99,14 @@ def save_matches_to_csv(puuid, matches_data, stage_match_file_path):
                     info.get("participants")[player_index_in_match].get("championName"),
                     info.get("participants")[player_index_in_match].get("goldEarned"),
                     info.get("participants")[player_index_in_match].get("individualPosition"),
-                    info.get("participants")[player_index_in_match].get("totalDamageDealt"),
+                    info.get("participants")[player_index_in_match].get("totalDamageDealtToChampions"),
                     info.get("participants")[player_index_in_match].get("visionScore"),
                     info.get("participants")[player_index_in_match].get("win"),
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 ])
 
     else:
-        headers = ["match_id","game_duration","game_creation","game_version","puuid","assists","deaths","kills","champ_level","champion_id","champion_name","gold_earned","individual_position","total_damage_dealt","vision_score","win","datetime"]
+        headers = ["match_id","game_duration","game_creation","game_version","puuid","assists","deaths","kills","champ_level","champion_id","champion_name","gold_earned","individual_position","total_damage_dealt_to_champions","vision_score","win","datetime"]
 
         with open(stage_match_file_path, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
@@ -134,7 +134,7 @@ def save_matches_to_csv(puuid, matches_data, stage_match_file_path):
                     info.get("participants")[player_index_in_match].get("championName"),
                     info.get("participants")[player_index_in_match].get("goldEarned"),
                     info.get("participants")[player_index_in_match].get("individualPosition"),
-                    info.get("participants")[player_index_in_match].get("totalDamageDealt"),
+                    info.get("participants")[player_index_in_match].get("totalDamageDealtToChampions"),
                     info.get("participants")[player_index_in_match].get("visionScore"),
                     info.get("participants")[player_index_in_match].get("win"),
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")
