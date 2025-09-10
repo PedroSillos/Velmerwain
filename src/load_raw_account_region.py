@@ -6,12 +6,10 @@ import json
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--game_name", type=str)
-    parser.add_argument("--tag_line", type=str)
     parser.add_argument("--api_key", type=str)
 
     args = parser.parse_args()
-    return args.game_name, args.tag_line, args.api_key
+    return args.api_key
 
 def get_file_path(file_name: str, file_dir: str):
     current_path = os.path.abspath(__file__)
@@ -20,50 +18,48 @@ def get_file_path(file_name: str, file_dir: str):
 
     return file_path
 
-def get_account_data(game_name: str, tag_line: str, api_key: str):
-    url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-    headers = {"X-Riot-Token": api_key}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-def save_account_data(file_path: str, account_data: dict):
-    account_data['modifiedOn'] = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-
-    os.makedirs(file_path.replace("/raw_account.json",""), exist_ok=True)
-    
-    if os.path.isfile(file_path):
-        users = []
-        updated = False
-        
-        with open(file_path, "r", encoding="utf-8") as file:
-            users = json.load(file)
-        
-        for user in users:
-            if user["puuid"] == account_data["puuid"]:
-                user["gameName"] = account_data["gameName"]
-                user["tagLine"] = account_data["tagLine"]
-                user["modifiedOn"] = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-                updated = True
-        
-        if not updated:
-            users.append(account_data)
-        
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(users, file, indent=4)
-
-    else:
-        users = []
-        users.append(account_data)
-
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(users, file, indent=4)
-
-if __name__ == "__main__":
-    game_name, tag_line, api_key = get_args()
-
-    account_data = get_account_data(game_name, tag_line, api_key)
+def get_stored_puuids():
+    puuids = []
 
     file_path = get_file_path(file_name="raw_account.json", file_dir="bronze")
 
-    save_account_data(file_path, account_data)
+    with open(file_path, "r", encoding="utf-8") as file:
+        accounts = json.load(file)
+    
+    for account in accounts:
+        puuids.append(account["puuid"])
+
+    return puuids
+
+def get_account_region_data(puuids: str, api_key: str):
+    account_region_data = []
+
+    for puuid in puuids:
+        url = f"https://americas.api.riotgames.com/riot/account/v1/region/by-game/lol/by-puuid/{puuid}"
+        headers = {"X-Riot-Token": api_key}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        account_region_data.append(response.json())
+    
+    return account_region_data
+
+def save_account_region_data(file_path: str, account_region_data: dict):
+    for account in account_region_data:
+        account['modifiedOn'] = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+
+    os.makedirs(file_path.replace("/raw_account_region.json",""), exist_ok=True)
+
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(account_region_data, file, indent=4)
+
+if __name__ == "__main__":
+    api_key = get_args()
+
+    puuids = get_stored_puuids()
+
+    account_region_data = get_account_region_data(puuids, api_key)
+
+    file_path = get_file_path(file_name="raw_account_region.json", file_dir="bronze")
+
+    save_account_region_data(file_path, account_region_data)
