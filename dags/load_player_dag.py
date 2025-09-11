@@ -42,8 +42,19 @@ def load_player_dag(game_name: str, tag_line: str, api_key: str):
             return command
         else:
             return f"File '{script_path}' does not exist."
+
+    @task.bash
+    def load_raw_champion_mastery(api_key: str):
+        script_path = get_file_path(file_name="load_raw_champion_mastery.py", file_dir="src")
+        
+        command = f"python {script_path} --api_key {api_key}"
+
+        if os.path.exists(script_path):
+            return command
+        else:
+            return f"File '{script_path}' does not exist."
     
-    load_raw_account(game_name, tag_line, api_key) >> load_raw_account_region(api_key) >> load_raw_summoner(api_key)
+    load_raw_account(game_name, tag_line, api_key) >> load_raw_account_region(api_key) >> load_raw_summoner(api_key) >> load_raw_champion_mastery(api_key)
 
 load_player_dag(
     game_name="{{ var.value.game_name }}",
