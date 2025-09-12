@@ -69,9 +69,11 @@ def save_players(file_path: str, players: dict):
     os.makedirs(file_path.replace("/silver_player.csv",""), exist_ok=True)
 
     field_names = players[0].keys()
-    
+
     with open(file_path, "w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(players)
 
 if __name__ == "__main__":
     puuids, players = get_puuids_and_accounts()
@@ -79,6 +81,9 @@ if __name__ == "__main__":
     players = get_account_regions(puuids, players)
 
     players = get_summoners(puuids, players)
+
+    print(players[0])
+    print(players[-1])
 
     file_path = get_file_path(file_name="silver_player.csv", file_dir="silver")
 
