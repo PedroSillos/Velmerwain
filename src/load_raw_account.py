@@ -3,6 +3,8 @@ import os
 import requests
 from datetime import datetime
 import json
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit, when, col
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -17,7 +19,6 @@ def get_file_path(file_name: str, file_dir: str):
     current_path = os.path.abspath(__file__)
     project_path = "/".join(current_path.split("/")[:-2])
     file_path = f"{project_path}/{file_dir}/{file_name}"
-
     return file_path
 
 def get_account_data(game_name: str, tag_line: str, api_key: str):
@@ -28,42 +29,40 @@ def get_account_data(game_name: str, tag_line: str, api_key: str):
     return response.json()
 
 def save_account_data(file_path: str, account_data: dict):
+    spark = SparkSession.builder.appName("AccountDataUpdater").getOrCreate()
+
+    # Add timestamp
     account_data['modifiedOn'] = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
 
-    os.makedirs(file_path.replace("/raw_account.json",""), exist_ok=True)
-    
+    # Convert to DataFrame
+    new_df = spark.read.json(spark.sparkContext.parallelize([json.dumps(account_data)]))
+
+    # If file exists, load existing data
     if os.path.isfile(file_path):
-        users = []
-        updated = False
-        
-        with open(file_path, "r", encoding="utf-8") as file:
-            users = json.load(file)
-        
-        for user in users:
-            if user["puuid"] == account_data["puuid"]:
-                user["gameName"] = account_data["gameName"]
-                user["tagLine"] = account_data["tagLine"]
-                user["modifiedOn"] = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-                updated = True
-        
-        if not updated:
-            users.append(account_data)
-        
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(users, file, indent=4)
+        existing_df = spark.read.json(file_path)
 
+        # Update rows where puuid matches
+        updated_df = (
+            existing_df.alias("old")
+            .join(new_df.alias("new"), on="puuid", how="outer")
+            .select(
+                when(col("new.puuid").isNotNull(), col("new.puuid")).otherwise(col("old.puuid")).alias("puuid"),
+                when(col("new.gameName").isNotNull(), col("new.gameName")).otherwise(col("old.gameName")).alias("gameName"),
+                when(col("new.tagLine").isNotNull(), col("new.tagLine")).otherwise(col("old.tagLine")).alias("tagLine"),
+                when(col("new.modifiedOn").isNotNull(), col("new.modifiedOn")).otherwise(col("old.modifiedOn")).alias("modifiedOn"),
+            )
+        )
     else:
-        users = []
-        users.append(account_data)
+        updated_df = new_df
 
-        with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(users, file, indent=4)
+    # Ensure parent dir exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Overwrite file
+    updated_df.coalesce(1).write.mode("append").json(file_path)
 
 if __name__ == "__main__":
     game_name, tag_line, api_key = get_args()
-
     account_data = get_account_data(game_name, tag_line, api_key)
-
-    file_path = get_file_path(file_name="raw_account.json", file_dir="bronze")
-
+    file_path = get_file_path(file_name="raw_account", file_dir="bronze")
     save_account_data(file_path, account_data)
