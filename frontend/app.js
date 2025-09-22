@@ -48,6 +48,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         body: JSON.stringify({ puuid: player.puuid })
     });
     const analytics = await analyticsRes.json();
+    
     // 5. Display analytics
     let html = '<h2>Most Played Champions</h2><ol>';
     analytics.mostPlayed.forEach(([champ, count]) => {

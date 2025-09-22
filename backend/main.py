@@ -24,18 +24,6 @@ from pydantic import BaseModel
 from riot_api import RiotAPI
 from analytics import most_played_champions, highest_winrate_champions
 
-class AnalyticsRequest(BaseModel):
-    puuid: str
-
-@app.post("/analytics")
-def get_analytics(req: AnalyticsRequest):
-    most_played = most_played_champions(req.puuid, DATA_DIR)
-    highest_winrate = highest_winrate_champions(req.puuid, DATA_DIR)
-    return {
-        "mostPlayed": most_played,
-        "highestWinrate": highest_winrate
-    }
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -286,3 +274,15 @@ def get_match(req: MatchRequest):
         with open(match_path, 'w') as f:
             json.dump(matches, f, indent=4)
         return
+
+class AnalyticsRequest(BaseModel):
+    puuid: str
+
+@app.post("/analytics")
+def get_analytics(req: AnalyticsRequest):
+    most_played = most_played_champions(req.puuid, BRONZE_DIR)
+    highest_winrate = highest_winrate_champions(req.puuid, BRONZE_DIR)
+    return {
+        "mostPlayed": most_played,
+        "highestWinrate": highest_winrate
+    }
