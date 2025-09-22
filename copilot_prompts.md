@@ -5,10 +5,7 @@ I want to build a data-driven tool to help League of Legends players increase th
  - python
  - pyspark
  - delta lake
- - containers
  - bronze (raw), silver and gold layers
-
-The user will interact with the application using the terminal.
 
 Add any other tools if needed, but keep it free to run locally.
 
