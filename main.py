@@ -1,6 +1,7 @@
 import getpass
 from datetime import datetime
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as SparkFunctions
 from delta import configure_spark_with_delta_pip
 import requests
 
@@ -22,7 +23,10 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     # Check if player exists
     try:
         df = spark.read.format("delta").load(bronze_path)
-        existing = df.filter((df.gameName == game_name) & (df.tagLine == tag_line))
+        existing = df.filter(
+            (SparkFunctions.upper(df.gameName) == game_name.upper())
+            & (SparkFunctions.upper(df.tagLine) == tag_line.upper())
+        )
         
         if existing.count() > 0:
             # Update modifiedOn
@@ -60,7 +64,7 @@ def display_players(spark):
             return
             
         print(f"{'Game Name':<20} {'Tag Line':<10} {'Puuid':<80} {'Modified On':<20}")
-        print("-" * 140)
+        print("-" * 135)
         for player in players:
             print(f"{player.gameName:<20} {player.tagLine:<10} {player.puuid:<80} {player.modifiedOn:<20}")
     except:
@@ -69,7 +73,7 @@ def display_players(spark):
 def main():
     action = input("Enter 'add' to add player or 'list' to show all players: ")
     
-    if action == 'add':
+    if action.upper() == "ADD":
         game_name, tag_line, api_key = get_user_input()
         spark = init_spark()
         save_player_bronze(spark, game_name, tag_line, api_key)
