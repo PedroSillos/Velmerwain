@@ -43,7 +43,7 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     
     if response.status_code == 200:
         data = response.json()
-        player_data = [(data["puuid"], game_name, tag_line, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))]
+        player_data = [(data["puuid"], data["gameName"], data["tagLine"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))]
         df = spark.createDataFrame(player_data, ["puuid", "gameName", "tagLine", "modifiedOn"])
         df.write.format("delta").mode("append").save(bronze_path)
         print("Player saved")
