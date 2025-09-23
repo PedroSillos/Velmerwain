@@ -66,7 +66,7 @@ def save_match_ids_bronze(spark, api_key):
     match_id_data = []
     
     for puuid in puuids:
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         
         if response.status_code == 200:
