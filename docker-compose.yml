@@ -1,0 +1,8 @@
+services:
+  velmerwain:
+    build: .
+    volumes:
+      - ./data:/app/data
+    stdin_open: true
+    tty: true
+    command: ["python", "main.py"]
