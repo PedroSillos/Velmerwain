@@ -50,11 +50,35 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     else:
         print(f"API Error: {response.status_code}")
 
+def display_players(spark):
+    try:
+        df = spark.read.format("delta").load("data/bronze/players")
+        players = df.collect()
+        
+        if not players:
+            print("No players found")
+            return
+            
+        print(f"{'Game Name':<20} {'Tag Line':<10} {'Puuid':<80} {'Modified On':<20}")
+        print("-" * 140)
+        for player in players:
+            print(f"{player.gameName:<20} {player.tagLine:<10} {player.puuid:<80} {player.modifiedOn:<20}")
+    except:
+        print("No players found")
+
 def main():
-    game_name, tag_line, api_key = get_user_input()
-    spark = init_spark()
-    save_player_bronze(spark, game_name, tag_line, api_key)
-    spark.stop()
+    action = input("Enter 'add' to add player or 'list' to show all players: ")
+    
+    if action == 'add':
+        game_name, tag_line, api_key = get_user_input()
+        spark = init_spark()
+        save_player_bronze(spark, game_name, tag_line, api_key)
+        spark.stop()
+    
+    else:
+        spark = init_spark()
+        display_players(spark)
+        spark.stop()
 
 if __name__ == "__main__":
     main()
