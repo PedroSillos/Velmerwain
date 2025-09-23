@@ -54,6 +54,31 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     else:
         print(f"API Error: {response.status_code}")
 
+def save_match_ids_bronze(spark, api_key):
+    players_df = spark.read.format("delta").load("data/bronze/players")
+    puuids = [row.puuid for row in players_df.collect()]
+    
+    if not puuids:
+        print("No players found")
+        return
+    
+    match_ids_path = "data/bronze/match_ids"
+    match_id_data = []
+    
+    for puuid in puuids:
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        response = requests.get(url, headers={"X-Riot-Token": api_key})
+        
+        if response.status_code == 200:
+            match_ids = response.json()
+            for match_id in match_ids:
+                match_id_data.append((puuid, match_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+    if match_id_data:
+        df = spark.createDataFrame(match_id_data, ["puuid", "matchId", "modifiedOn"])
+        df.write.format("delta").mode("overwrite").save(match_ids_path)
+        print(f"Saved {len(match_id_data)} match records")
+
 def display_players(spark):
     try:
         df = spark.read.format("delta").load("data/bronze/players")
@@ -70,6 +95,22 @@ def display_players(spark):
     except:
         print("No players found")
 
+def display_match_ids(spark):
+    try:
+        players_df = spark.read.format("delta").load("data/bronze/players")
+        match_df = spark.read.format("delta").load("data/bronze/match_ids")
+        
+        players = players_df.collect()
+        match_count = match_df.groupBy("puuid").count().collect()
+        match_dict = {row["puuid"]: row["count"] for row in match_count}
+        
+        print("\nMatch IDs stored:")
+        for player in players:
+            count = match_dict.get(player.puuid, 0)
+            print(f"{player.gameName}#{player.tagLine}: {count} matches")
+    except:
+        print("\nNo match IDs found")
+
 def main():
     action = input("Enter 'add' to add player or 'list' to show all players: ")
     
@@ -77,11 +118,13 @@ def main():
         game_name, tag_line, api_key = get_user_input()
         spark = init_spark()
         save_player_bronze(spark, game_name, tag_line, api_key)
+        save_match_ids_bronze(spark, api_key)
         spark.stop()
     
     else:
         spark = init_spark()
         display_players(spark)
+        display_match_ids(spark)
         spark.stop()
 
 if __name__ == "__main__":
