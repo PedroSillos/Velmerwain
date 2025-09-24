@@ -149,7 +149,7 @@ def display_match_ids(spark):
         print("\nMatch IDs stored:")
         for player in players:
             count = match_dict.get(player.puuid, 0)
-            print(f"{player.gameName}#{player.tagLine}: {count} matches")
+            print(f"{player.gameName}#{player.tagLine}: {count} match ids")
     except:
         print("\nNo match IDs found")
 
