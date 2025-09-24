@@ -66,13 +66,17 @@ def save_match_ids_bronze(spark, api_key):
     match_id_data = []
     
     for puuid in puuids:
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start=0&count=100"
-        response = requests.get(url, headers={"X-Riot-Token": api_key})
-        
-        if response.status_code == 200:
-            match_ids = response.json()
-            for match_id in match_ids:
-                match_id_data.append((puuid, match_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        start = 0
+        match_ids = ['dummy'] # we need a non-empty list to enter the loop
+        while match_ids != []:
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start={start}&count=100"
+            response = requests.get(url, headers={"X-Riot-Token": api_key})
+            
+            if response.status_code == 200:
+                match_ids = response.json()
+                for match_id in match_ids:
+                    match_id_data.append((puuid, match_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                start += 100
     
     if match_id_data:
         df = spark.createDataFrame(match_id_data, ["puuid", "matchId", "modifiedOn"])
