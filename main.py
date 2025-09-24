@@ -83,6 +83,44 @@ def save_match_ids_bronze(spark, api_key):
         df.write.format("delta").mode("overwrite").save(match_ids_path)
         print(f"Saved {len(match_id_data)} match records")
 
+def save_matches_bronze(spark, api_key):
+    match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
+    match_ids = {}
+    for row in match_ids_df.collect():
+        if not row.puuid in match_ids:
+            match_ids[row.puuid] = []
+        match_ids[row.puuid].append(row.matchId)
+    
+    if not match_ids:
+        print("No match IDs found")
+        return
+    
+    matches_path = "data/bronze/matches"
+    match_data = []
+    
+    for puuid in match_ids:
+        for match_id in match_ids[puuid]:
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}"
+            response = requests.get(url, headers={"X-Riot-Token": api_key})
+            
+            if response.status_code == 200:
+                match_info = response.json()
+                match_data.append(
+                    {
+                        "puuid": puuid,
+                        "matchId": match_id,
+                        "metadata": str(match_info["metadata"]),
+                        "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                )
+                break
+    
+    if match_data:
+        df = spark.createDataFrame(match_data, ["matchId", "matchData", "modifiedOn"])
+        df.write.format("delta").mode("overwrite").save(matches_path)
+        print(f"Saved {len(match_data)} matches")
+        print(match_data)
+
 def display_players(spark):
     try:
         df = spark.read.format("delta").load("data/bronze/players")
@@ -123,6 +161,7 @@ def main():
         spark = init_spark()
         save_player_bronze(spark, game_name, tag_line, api_key)
         save_match_ids_bronze(spark, api_key)
+        save_matches_bronze(spark, api_key)
         spark.stop()
     
     else:
