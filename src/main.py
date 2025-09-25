@@ -59,32 +59,42 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
 
 def save_match_ids_bronze(spark, api_key):
     players_df = spark.read.format("delta").load("data/bronze/players")
-    puuids = [row.puuid for row in players_df.collect()]
+    players = [(row.puuid, row.gameName, row.tagLine) for row in players_df.collect()]
     
-    if not puuids:
+    if not players:
         print("No players found")
         return
     
     match_ids_path = "data/bronze/match_ids"
     match_id_data = []
     
-    for puuid in puuids:
+    for player in players:
         start = 0
         match_ids = ['dummy'] # we need a non-empty list to enter the loop
         while match_ids != []:
-            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?queue=420&type=ranked&start={start}&count=100"
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{player[0]}/ids?queue=420&type=ranked&start={start}&count=100"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
             
             if response.status_code == 200:
                 match_ids = response.json()
                 for match_id in match_ids:
-                    match_id_data.append((puuid, match_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    match_id_data.append(
+                        {
+                            "puuid": player[0],
+                            "matchId": match_id,
+                            "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                    )
                 start += 100
     
     if match_id_data:
-        df = spark.createDataFrame(match_id_data, ["puuid", "matchId", "modifiedOn"])
-        df.write.format("delta").mode("overwrite").save(match_ids_path)
-        print(f"Saved {len(match_id_data)} match records")
+        df_new_match_id_data = spark.createDataFrame(match_id_data)
+        df_new_match_id_data.write.format("delta").mode("overwrite").save(match_ids_path)
+        match_ids_by_puuid = df_new_match_id_data.groupBy("puuid").count().collect()
+        for player in players:
+            for row in match_ids_by_puuid:
+                if row.puuid == player[0]:
+                    print(f"Saved {row['count']} match IDs for {player[1]}#{player[2]}")
 
 def save_matches_bronze(spark, api_key):
     match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
@@ -120,7 +130,7 @@ def save_matches_bronze(spark, api_key):
     
     if match_data:
         df_match_data = spark.createDataFrame(match_data)
-        df_match_data.write.format("delta").mode("overwrite").save(matches_path)
+        df_match_data.write.format("delta").mode("append").save(matches_path)
         print(f"Saved {len(match_data)} matches")
         
 
