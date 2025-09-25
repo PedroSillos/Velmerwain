@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - ./data:/app/data
+      - ./src:/app/src
     stdin_open: true
     tty: true
-    command: ["python", "main.py"]
+    command: ["python", "src/main.py"]

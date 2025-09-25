@@ -27,6 +27,9 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
             (SparkFunctions.upper(df.gameName) == game_name.upper())
             & (SparkFunctions.upper(df.tagLine) == tag_line.upper())
         )
+
+        stored_gameName = existing.select("gameName").collect()[0]["gameName"]
+        stored_tagLine = existing.select("tagLine").collect()[0]["tagLine"]
         
         if existing.count() > 0:
             # Update modifiedOn
@@ -36,7 +39,7 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
                 SET modifiedOn = '{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}' 
                 WHERE gameName = '{game_name}' AND tagLine = '{tag_line}'
             """)
-            print("Player updated")
+            print(f"Player {stored_gameName}#{stored_tagLine} updated")
             return
     except:
         pass
@@ -50,7 +53,7 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
         player_data = [(data["puuid"], data["gameName"], data["tagLine"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))]
         df = spark.createDataFrame(player_data, ["puuid", "gameName", "tagLine", "modifiedOn"])
         df.write.format("delta").mode("append").save(bronze_path)
-        print("Player saved")
+        print(f"Player {data["gameName"]}#{data["tagLine"]} saved")
     else:
         print(f"API Error: {response.status_code}")
 
@@ -130,6 +133,7 @@ def display_players(spark):
             print("No players found")
             return
             
+        print("\nPlayers stored:")
         print(f"{'Game Name':<20} {'Tag Line':<10} {'Puuid':<80} {'Modified On':<20}")
         print("-" * 135)
         for player in players:
@@ -162,7 +166,7 @@ def display_matches(spark):
         match_count = match_df.groupBy("puuid").count().collect()
         match_dict = {row["puuid"]: row["count"] for row in match_count}
         
-        print("\nMatch IDs stored:")
+        print("\nMatches stored:")
         for player in players:
             count = match_dict.get(player.puuid, 0)
             print(f"{player.gameName}#{player.tagLine}: {count} matches")
