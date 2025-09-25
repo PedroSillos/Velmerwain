@@ -108,18 +108,18 @@ def save_matches_bronze(spark, api_key):
                 match_data.append(
                     {
                         "puuid": puuid,
-                        "matchId": match_id,
-                        "metadata": str(match_info["metadata"]),
+                        "matchId": match_info["metadata"]["matchId"],
+                        "dataVersion": match_info["metadata"]["dataVersion"],
                         "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                 )
                 break
     
     if match_data:
-        df = spark.createDataFrame(match_data, ["matchId", "matchData", "modifiedOn"])
-        df.write.format("delta").mode("overwrite").save(matches_path)
+        df_match_data = spark.createDataFrame(match_data)
+        df_match_data.write.format("delta").mode("overwrite").save(matches_path)
         print(f"Saved {len(match_data)} matches")
-        print(match_data)
+        
 
 def display_players(spark):
     try:
@@ -167,7 +167,7 @@ def display_matches(spark):
             count = match_dict.get(player.puuid, 0)
             print(f"{player.gameName}#{player.tagLine}: {count} matches")
     except:
-        print("\nNo match IDs found")
+        print("\nNo matches found")
 
 def main():
     action = input("Enter 'add' to add player or 'list' to show all players: ")
