@@ -108,8 +108,6 @@ def save_matches_bronze(spark, api_key):
         print("No players found")
         return
     
-    print(players)
-    
     match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
     match_ids = {}
     for row in match_ids_df.collect():
@@ -204,7 +202,7 @@ def display_matches(spark):
 def main():
     action = input("Enter 'add' to add player or 'list' to show all players: ")
     
-    if action.upper() == "ADD":
+    if action.upper() in ["ADD", "AD", "A"]:
         game_name, tag_line, api_key = get_user_input()
         spark = init_spark()
         save_player_bronze(spark, game_name, tag_line, api_key)
