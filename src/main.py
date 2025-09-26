@@ -97,6 +97,19 @@ def save_match_ids_bronze(spark, api_key):
                     print(f"Saved {row['count']} match IDs for {player[1]}#{player[2]}")
 
 def save_matches_bronze(spark, api_key):
+    players_df = spark.read.format("delta").load("data/bronze/players")
+    players = {}
+    for row in players_df.collect():
+        if not row.puuid in players:
+            players[row.puuid] = []
+        players[row.puuid] = (row.gameName, row.tagLine)
+    
+    if not players:
+        print("No players found")
+        return
+    
+    print(players)
+    
     match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
     match_ids = {}
     for row in match_ids_df.collect():
@@ -131,7 +144,12 @@ def save_matches_bronze(spark, api_key):
     if match_data:
         df_match_data = spark.createDataFrame(match_data)
         df_match_data.write.format("delta").mode("append").save(matches_path)
-        print(f"Saved {len(match_data)} matches")
+
+        matches_by_puuid = df_match_data.groupBy("puuid").count().collect()
+        for player in players:
+            for row in matches_by_puuid:
+                if row.puuid == player:
+                    print(f"Saved {row['count']} matches for {players[player][0]}#{players[player][1]}")
         
 
 def display_players(spark):
