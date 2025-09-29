@@ -1,4 +1,6 @@
+import os
 import getpass
+import time
 from datetime import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as SparkFunctions
@@ -109,39 +111,46 @@ def save_matches_bronze(spark, api_key):
         return
     
     match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
-    match_ids = {}
+    match_ids = []
     for row in match_ids_df.collect():
-        if not row.puuid in match_ids:
-            match_ids[row.puuid] = []
-        match_ids[row.puuid].append(row.matchId)
+        match_ids.append((row.puuid, row.matchId))
     
     if not match_ids:
         print("No match IDs found")
         return
+
+    stored_matches = []
+    if os.path.exists("data/bronze/matches") and os.path.isdir("data/bronze/matches"):
+        matches_df = spark.read.format("delta").load("data/bronze/matches")
+        for row in matches_df.collect():
+            stored_matches.append((row.puuid, row.matchId))
+
+    new_matches = list(set(match_ids) - set(stored_matches))
     
-    matches_path = "data/bronze/matches"
     match_data = []
     
-    for puuid in match_ids:
-        for match_id in match_ids[puuid]:
-            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}"
-            response = requests.get(url, headers={"X-Riot-Token": api_key})
-            
-            if response.status_code == 200:
-                match_info = response.json()
-                match_data.append(
-                    {
-                        "puuid": puuid,
-                        "matchId": match_info["metadata"]["matchId"],
-                        "dataVersion": match_info["metadata"]["dataVersion"],
-                        "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-                )
-                break
+    for new_match in new_matches:
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match[1]}"
+        response = requests.get(url, headers={"X-Riot-Token": api_key})
+        time.sleep(2) # The rate limit for a personal keys is 100 requests every 2 minutes
+
+        if response.status_code == 200:
+            match_info = response.json()
+            match_data.append(
+                {
+                    "puuid": new_match[0],
+                    "matchId": match_info["metadata"]["matchId"],
+                    "dataVersion": match_info["metadata"]["dataVersion"],
+                    "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+            )
+        
+        if len(match_data) % 10 == 0:
+            print(f"Fetched {len(match_data)} matches so far")
     
     if match_data:
         df_match_data = spark.createDataFrame(match_data)
-        df_match_data.write.format("delta").mode("append").save(matches_path)
+        df_match_data.write.format("delta").mode("append").save("data/bronze/matches")
 
         matches_by_puuid = df_match_data.groupBy("puuid").count().collect()
         for player in players:
