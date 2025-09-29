@@ -132,7 +132,7 @@ def save_matches_bronze(spark, api_key):
     for new_match in new_matches:
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match[1]}"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
-        time.sleep(2) # The rate limit for a personal keys is 100 requests every 2 minutes
+        time.sleep(1.2) # The rate limit for a personal keys is 100 requests every 2 minutes
 
         if response.status_code == 200:
             match_info = response.json()
@@ -146,7 +146,7 @@ def save_matches_bronze(spark, api_key):
             )
         
         if len(match_data) % 10 == 0:
-            print(f"Fetched {len(match_data)} matches so far")
+            print(f"Loaded {len(match_data)}/{len(new_matches)} matches")
     
     if match_data:
         df_match_data = spark.createDataFrame(match_data)
