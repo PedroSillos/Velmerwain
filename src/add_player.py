@@ -42,22 +42,37 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     except:
         pass
     
+    player_data = {}
+    
     url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
     response = requests.get(url, headers={"X-Riot-Token": api_key})
     
     if response.status_code == 200:
         data = response.json()
-        player_data = {
+        player_data = [{
             "puuid": data["puuid"],
             "gameName": data["gameName"],
             "tagLine": data["tagLine"],
+            "lol-region": None,
             "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        df = spark.createDataFrame(player_data)
-        df.write.format("delta").mode("append").save("data/bronze/players")
-        print(f"Player {data['gameName']}#{data['tagLine']} saved")
+        }]
     else:
         print(f"API Error: {response.status_code}")
+        return
+
+    url = f"https://americas.api.riotgames.com/riot/account/v1/region/by-game/lol/by-puuid/{player_data[0]["puuid"]}"
+    response = requests.get(url, headers={"X-Riot-Token": api_key})
+    
+    if response.status_code == 200:
+        data = response.json()
+        player_data[0]["lol-region"] = data["region"]
+    else:
+        print(f"API Error: {response.status_code}")
+        return
+    
+    df = spark.createDataFrame(player_data)
+    df.write.format("delta").mode("append").save("data/bronze/players")
+    print(f"Player {player_data[0]['gameName']}#{player_data[0]['tagLine']} saved")
 
 def save_match_ids_bronze(spark, api_key):
     players_df = spark.read.format("delta").load("data/bronze/players")
