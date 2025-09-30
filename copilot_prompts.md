@@ -6,14 +6,15 @@ A data-driven tool to help League of Legends players increase their win rate.
 - Python 3.13.7
 - PySpark with Delta Lake
 - Docker containers
-- Bronze (raw), Silver, and Gold data layers
+- Riot Games API integration
+- Bronze, Silver and Gold data storage
 
 ## Current App Flow
 
 ### 1. User Input
 The user runs the app and chooses an action:
-- `add` - to add a new player
-- `list` - to display all stored players
+- `add` - to add a new player and fetch their match data
+- `list` - to display all stored data
 
 ### 2. Add Player Flow
 When adding a player, the user provides:
@@ -21,22 +22,40 @@ When adding a player, the user provides:
 - **tagLine** - Riot ID tag (e.g., #NA1)
 - **apiKey** - Riot Games API key (hidden input using getpass)
 
-### 3. Bronze Layer - Player Storage
-The app checks if the player exists in `data/bronze/players/`:
-- **If player exists**: Updates the `modifiedOn` timestamp
-- **If player doesn't exist**: 
-  - Calls Riot API: `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}`
-  - Saves: `puuid`, `gameName`, `tagLine`, `modifiedOn`
-  - Stores data in Delta Lake format
+The app then executes a complete data pipeline:
 
-### 4. List Players Flow
-Displays all stored players in a formatted table showing:
-- Game Name
-- Tag Line  
-- PUUID
-- Last Modified timestamp
+ - Step 1: Player Storage
+
+ - Match IDs Collection
+
+ - Match Details Collection
+
+### 3. List/Display Flow
+Displays comprehensive data overview:
+
+ -  Players Table
+
+ -  Match IDs Summary
+
+ -  Matches Summary
+
+### 4. Data Storage Structure
+```
+data/bronze/
+├── players/
+├── match_ids/
+└── matches/
+```
 
 ### 5. Container Setup
-- Uses Docker with Python 3.13.7 and OpenJDK 21
-- Mounts `./data` volume for persistent storage
-- Interactive terminal support with `stdin_open` and `tty`
+- **Base**: Python 3.13.7 with OpenJDK 21
+- **Dependencies**: pyspark, delta-spark, requests
+- **Volumes**: `./data` and `./src` mounted for persistence and development
+- **Command**: `python src/main.py`
+
+### 6. API Integration Details
+- **Rate Limiting**: 1.2s delay between match detail requests
+- **Error Handling**: HTTP status code validation
+- **Batch Processing**: 100 match IDs per API call
+- **Incremental Updates**: Only fetches new match data
+- **Queue Filter**: Ranked Solo/Duo games only (queue=420)
