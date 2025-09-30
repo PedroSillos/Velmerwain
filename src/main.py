@@ -157,6 +157,8 @@ def save_matches_bronze(spark, api_key):
             for row in matches_by_puuid:
                 if row.puuid == player:
                     print(f"Saved {row['count']} matches for {players[player][0]}#{players[player][1]}")
+    else:
+        print("No new matches found")
         
 
 def display_players(spark):
