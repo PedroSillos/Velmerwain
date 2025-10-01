@@ -75,28 +75,50 @@ def save_player_bronze(spark, game_name, tag_line, api_key):
     print(f"Player {player_data[0]['gameName']}#{player_data[0]['tagLine']} saved")
 
 def save_match_ids_bronze(spark, api_key):
+    super_region_map = {
+        "americas": ["na1", "br1", "la1", "la2"],
+        "asia": ["kr", "jp1"],
+        "europe": ["eun1", "euw1", "me1", "tr1", "ru"],
+        "sea": ["oc1", "sg2", "tw2", "vn2"]
+    }
+    
     players_df = spark.read.format("delta").load("data/bronze/players")
-    players = [(row.puuid, row.gameName, row.tagLine) for row in players_df.collect()]
+    players = []
+    
+    for row in players_df.collect():
+        players.append(
+            {
+                "puuid": row["puuid"],
+                "gameName": row["gameName"],
+                "tagLine": row["tagLine"],
+                "lol-region": row["lol-region"]
+            }
+        )
     
     if not players:
         print("No players found")
         return
     
-    match_ids_path = "data/bronze/match_ids"
     match_id_data = []
     
     for player in players:
         start = 0
+        
+        player_super_region = ""
+        for super_region in super_region_map:
+            if player["lol-region"] in super_region_map[super_region]:
+                player_super_region = super_region
+        
         match_ids = ['dummy']
         while match_ids != []:
-            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{player[0]}/ids?queue=420&type=ranked&start={start}&count=100"
+            url = f"https://{player_super_region}.api.riotgames.com/lol/match/v5/matches/by-puuid/{player["puuid"]}/ids?queue=420&type=ranked&start={start}&count=100"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
             
             if response.status_code == 200:
                 match_ids = response.json()
                 for match_id in match_ids:
                     match_id_data.append({
-                        "puuid": player[0],
+                        "puuid": player["puuid"],
                         "matchId": match_id,
                         "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     })
@@ -104,12 +126,12 @@ def save_match_ids_bronze(spark, api_key):
     
     if match_id_data:
         df_new_match_id_data = spark.createDataFrame(match_id_data)
-        df_new_match_id_data.write.format("delta").mode("overwrite").save(match_ids_path)
+        df_new_match_id_data.write.format("delta").mode("overwrite").save("data/bronze/match_ids")
         match_ids_by_puuid = df_new_match_id_data.groupBy("puuid").count().collect()
         for player in players:
             for row in match_ids_by_puuid:
-                if row.puuid == player[0]:
-                    print(f"Saved {row['count']} match IDs for {player[1]}#{player[2]}")
+                if row.puuid == player["puuid"]:
+                    print(f"Saved {row['count']} match IDs for {player["gameName"]}#{player["tagLine"]}")
 
 def save_matches_bronze(spark, api_key):
     players_df = spark.read.format("delta").load("data/bronze/players")

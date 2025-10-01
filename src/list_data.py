@@ -17,8 +17,8 @@ def display_players(spark):
             return
             
         print("\nPlayers stored:")
-        
         df.show()
+    
     except:
         print("No players found")
 
