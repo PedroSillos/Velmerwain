@@ -199,7 +199,7 @@ def save_matches_bronze(spark, api_key):
         for player in players:
             for row in matches_by_puuid:
                 if row.puuid == player:
-                    print(f"Saved {row['count']} matches for {players[player][0]}#{players[player][1]}")
+                    print(f"Saved {row['count']} matches for {players[player]["gameName"]}#{players[player]["tagLine"]}")
     else:
         print("No new matches found")
 
