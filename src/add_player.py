@@ -134,17 +134,28 @@ def save_match_ids_bronze(spark, api_key):
                     print(f"Saved {row['count']} match IDs for {player["gameName"]}#{player["tagLine"]}")
 
 def save_matches_bronze(spark, api_key):
+    super_region_map = {
+        "americas": ["na1", "br1", "la1", "la2"],
+        "asia": ["kr", "jp1"],
+        "europe": ["eun1", "euw1", "me1", "tr1", "ru"],
+        "sea": ["oc1", "sg2", "tw2", "vn2"]
+    }
+
     players_df = spark.read.format("delta").load("data/bronze/players")
     players = {}
     for row in players_df.collect():
-        players[row.puuid] = (row.gameName, row.tagLine)
+        players[row["puuid"]] = {
+            "gameName": row["gameName"],
+            "tagLine": row["tagLine"],
+            "lol-region": row["lol-region"]
+        }
     
     if not players:
         print("No players found")
         return
     
     match_ids_df = spark.read.format("delta").load("data/bronze/match_ids")
-    match_ids = [(row.puuid, row.matchId) for row in match_ids_df.collect()]
+    match_ids = [(row["puuid"], row["matchId"]) for row in match_ids_df.collect()]
     
     if not match_ids:
         print("No match IDs found")
@@ -153,13 +164,19 @@ def save_matches_bronze(spark, api_key):
     stored_matches = []
     if os.path.exists("data/bronze/matches") and os.path.isdir("data/bronze/matches"):
         matches_df = spark.read.format("delta").load("data/bronze/matches")
-        stored_matches = [(row.puuid, row.matchId) for row in matches_df.collect()]
+        stored_matches = [(row["puuid"], row["matchId"]) for row in matches_df.collect()]
 
     new_matches = list(set(match_ids) - set(stored_matches))
     match_data = []
     
     for new_match in new_matches:
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match[1]}"
+        player_region = players[new_match[0]]["lol-region"]
+        player_super_region = ""
+        for super_region in super_region_map:
+            if player_region in super_region_map[super_region]:
+                player_super_region = super_region
+        
+        url = f"https://{player_super_region}.api.riotgames.com/lol/match/v5/matches/{new_match[1]}"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         time.sleep(1.2)
 
