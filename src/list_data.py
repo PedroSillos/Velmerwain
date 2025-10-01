@@ -17,10 +17,8 @@ def display_players(spark):
             return
             
         print("\nPlayers stored:")
-        print(f"{'Game Name':<20} {'Tag Line':<10} {'Puuid':<80} {'Modified On':<20}")
-        print("-" * 135)
-        for player in players:
-            print(f"{player.gameName:<20} {player.tagLine:<10} {player.puuid:<80} {player.modifiedOn:<20}")
+        
+        df.show()
     except:
         print("No players found")
 
