@@ -2,8 +2,6 @@ import getpass
 from pyspark.sql import SparkSession
 from delta import configure_spark_with_delta_pip
 import requests
-from datetime import datetime
-import time
 
 def init_spark():
     builder = SparkSession.builder.appName("VelMerWain") \
@@ -75,11 +73,11 @@ def load_player_bronze(spark, api_key):
             print(f"API Error: {response.status_code}")
             return
         
-        df = spark.createDataFrame(new_players)
-        df.write.format("delta").mode("append").save("data/bronze/player")
+        if new_players:
+            df = spark.createDataFrame(new_players)
+            df.write.format("delta").mode("append").save("data/bronze/player")
 
         print(f"\nSaved {len(new_players)} players from {region}")
-        df.show(5, truncate=False)
 
 def load_player():
     print("\n ***** Start load players ***** \n")

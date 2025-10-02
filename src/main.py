@@ -1,21 +1,21 @@
 from load_player import load_player
-from add_player import add_player
+from load_match_id import load_match_id
 from list_data import list_data
 
 def main():
-    action = input("\nEnter 'load' or 'list': ")
+    action = input("\nEnter action: ")
     
-    if action.upper() == "LOAD":
+    if action.upper() in ["1", "LOAD PLAYER", "LP"]:
         load_player()
         return
-    #if action.upper() == "ADD":
-    #    add_player()
-    #    return
-    if action.upper() == "LIST":
+    if action.upper()  in ["2", "LOAD MATCH ID", "LMI"]:
+        load_match_id()
+        return
+    if action.upper() in ["3", "LIST"]:
         list_data()
         return
-    else:
-        print(f"Invalid action: '{action}'. Bye.")
+    
+    print(f"Invalid action: '{action}'. Bye.")
 
 if __name__ == "__main__":
     main()

@@ -14,7 +14,7 @@ def display_player(spark):
             print("0 players found")
             return
         print("\nPlayers stored:",df.count())
-        df.show(10, truncate=False)
+        df.show(truncate=False)
     except:
         print("No player table found")
 
@@ -25,7 +25,7 @@ def display_match_id(spark):
             print("0 match_ids found")
             return
         print("\nMatch_ids stored:",df.count())
-        df.show(10, truncate=False)
+        df.show(truncate=False)
     except:
         print("\nNo match_id table found")
 
@@ -36,7 +36,7 @@ def display_match(spark):
             print("0 matches found")
             return
         print("\nMatches stored:",df.count())
-        df.show(10, truncate=False)
+        df.show(truncate=False)
     except:
         print("\nNo match table found")
 
