@@ -41,7 +41,6 @@ def load_player_bronze(spark, api_key):
                 divisions = ["IV", "III", "II", "I"]
             
             for division in divisions:
-                league_data = []
                 page_number = 1
                 count = 0
 
@@ -58,21 +57,28 @@ def load_player_bronze(spark, api_key):
                             break
                         
                         for league_entry in league_data:
+                            
+                            url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{league_entry["puuid"]}"
+                            response = requests.get(url, headers={"X-Riot-Token": api_key})
+                        
+                            if response.status_code == 200:
+                                account_data = response.json()
+                                if account_data == []:
+                                    break
+                            
                             player_data.append(
                                 {
                                     "puuid": league_entry["puuid"],
-                                    "gameName": None,
-                                    "tagLine": None,
+                                    "gameName": account_data["gameName"],
+                                    "tagLine": account_data["tagLine"],
                                     "lolRegion": region,
                                     "lolSuperRegion": player_super_region,
-                                    "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 }
                             )
                         
                         page_number += 1
                         count += len(league_data)
-
-                        print(f"{region} - {tier} - {division} - {page_number} - {count}")
                     
                     else:
                         if response.status_code == 429:
@@ -83,9 +89,9 @@ def load_player_bronze(spark, api_key):
                             print(f"API Error: {response.status_code}")
                             return
                         
-                print(f"\n ***** Wrote {region} - {tier} - {division} - {count} ***** \n")
                 df = spark.createDataFrame(player_data)
                 df.write.format("delta").mode("append").save("data/bronze/players")
+                print(f"\n ***** Wrote {region} - {tier} - {division} - {count} ***** \n")
 
 def load_player():
     api_key = getpass.getpass("\nAPI Key: ")
