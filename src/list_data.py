@@ -7,52 +7,44 @@ def init_spark():
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     return configure_spark_with_delta_pip(builder).getOrCreate()
 
-def display_players(spark):
+def display_player(spark):
     try:
-        df = spark.read.format("delta").load("data/bronze/players")
+        df = spark.read.format("delta").load("data/bronze/player")
         if not df:
             print("0 players found")
             return
-        print("\nPlayers stored:")
-        df.show(truncate=False)
+        print("\nPlayers stored:",df.count())
+        df.show(10, truncate=False)
     except:
-        print("No players table found")
+        print("No player table found")
 
-def display_match_ids(spark):
+def display_match_id(spark):
     try:
-        players_df = spark.read.format("delta").load("data/bronze/players")
-        match_df = spark.read.format("delta").load("data/bronze/match_ids")
-        
-        players = players_df.collect()
-        match_count = match_df.groupBy("puuid").count().collect()
-        match_dict = {row["puuid"]: row["count"] for row in match_count}
-        
-        print("\nMatch IDs stored:")
-        for player in players:
-            count = match_dict.get(player.puuid, 0)
-            print(f"{player.gameName}#{player.tagLine}: {count} match ids")
+        df = spark.read.format("delta").load("data/bronze/match_id")
+        if not df:
+            print("0 match_ids found")
+            return
+        print("\nMatch_ids stored:",df.count())
+        df.show(10, truncate=False)
     except:
-        print("\nNo match IDs found")
+        print("\nNo match_id table found")
 
-def display_matches(spark):
+def display_match(spark):
     try:
-        players_df = spark.read.format("delta").load("data/bronze/players")
-        match_df = spark.read.format("delta").load("data/bronze/matches")
-        
-        players = players_df.collect()
-        match_count = match_df.groupBy("puuid").count().collect()
-        match_dict = {row["puuid"]: row["count"] for row in match_count}
-        
-        print("\nMatches stored:")
-        for player in players:
-            count = match_dict.get(player.puuid, 0)
-            print(f"{player.gameName}#{player.tagLine}: {count} matches")
+        df = spark.read.format("delta").load("data/bronze/match")
+        if not df:
+            print("0 matches found")
+            return
+        print("\nMatches stored:",df.count())
+        df.show(10, truncate=False)
     except:
-        print("\nNo matches found")
+        print("\nNo match table found")
 
 def list_data():
+    print("\n ***** Start list players ***** \n")
     spark = init_spark()
-    display_players(spark)
-    #display_match_ids(spark)
-    #display_matches(spark)
+    display_player(spark)
+    display_match_id(spark)
+    display_match(spark)
     spark.stop()
+    print("\n ***** End list players ***** \n")
