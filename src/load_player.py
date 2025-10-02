@@ -12,7 +12,6 @@ def init_spark():
     return configure_spark_with_delta_pip(builder).getOrCreate()
 
 def load_player_bronze(spark, api_key):
-    
     regions = ["na1", "br1", "la1", "la2", "kr", "jp1", "eun1", "euw1", "me1", "tr1", "ru", "oc1", "sg2", "tw2", "vn2"]
     super_region_map = {
         "americas": ["na1", "br1", "la1", "la2"],
@@ -20,83 +19,60 @@ def load_player_bronze(spark, api_key):
         "europe": ["eun1", "euw1", "me1", "tr1", "ru"],
         "sea": ["oc1", "sg2", "tw2", "vn2"]
     }
-    tiers = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
-    divisions = []
     
-    player_data = []
+    players = []
     
     for region in regions:
-
-        player_super_region = ""
+        for super_region_i in super_region_map:
+            if region in super_region_map[super_region_i]:
+                super_region = super_region_i
         
-        for super_region in super_region_map:
-            if region in super_region_map[super_region]:
-                player_super_region = super_region
+        # There are too many players, so we limit to only KR region for now
+        if region != "kr":
+            continue
+        
+        url = f"https://{region}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5"
+        response = requests.get(url, headers={"X-Riot-Token": api_key})
+        
+        if response.status_code == 200:
+            league_data = response.json()
+            for league_entry in league_data["entries"]:
+                players.append({"puuid": league_entry["puuid"]})
+        else:
+            print(f"API Error: {response.status_code}")
+            return
 
-        for tier in tiers:
-            # These tiers only have one division
-            if tier in ["MASTER", "GRANDMASTER", "CHALLENGER"]:
-                divisions = ["I"]
-            else:
-                divisions = ["IV", "III", "II", "I"]
-            
-            for division in divisions:
-                page_number = 1
-                count = 0
+        url = f"https://{region}.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5"
+        response = requests.get(url, headers={"X-Riot-Token": api_key})
+        
+        if response.status_code == 200:
+            league_data = response.json()
+            for league_entry in league_data["entries"]:
+                players.append({"puuid": league_entry["puuid"]})
+        else:
+            print(f"API Error: {response.status_code}")
+            return
 
-                print(f"{region} - {tier} - {division} - {page_number} - {count}")
-                
-                # while will break if league_data == []
-                while True:
-                    url = f"https://{region}.api.riotgames.com/lol/league-exp/v4/entries/RANKED_SOLO_5x5/{tier}/{division}?page={page_number}"
-                    response = requests.get(url, headers={"X-Riot-Token": api_key})
-                    
-                    if response.status_code == 200:
-                        league_data = response.json()
-                        if league_data == []:
-                            break
-                        
-                        for league_entry in league_data:
-                            
-                            url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{league_entry["puuid"]}"
-                            response = requests.get(url, headers={"X-Riot-Token": api_key})
-                        
-                            if response.status_code == 200:
-                                account_data = response.json()
-                                if account_data == []:
-                                    break
-                            
-                            player_data.append(
-                                {
-                                    "puuid": league_entry["puuid"],
-                                    "gameName": account_data["gameName"],
-                                    "tagLine": account_data["tagLine"],
-                                    "lolRegion": region,
-                                    "lolSuperRegion": player_super_region,
-                                    "modifiedOn": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                }
-                            )
-                        
-                        page_number += 1
-                        count += len(league_data)
-                    
-                    else:
-                        if response.status_code == 429:
-                            print("Rate limit exceeded, sleeping for 30 seconds...")
-                            time.sleep(30)
-                            continue
-                        else:
-                            print(f"API Error: {response.status_code}")
-                            return
-                        
-                df = spark.createDataFrame(player_data)
-                df.write.format("delta").mode("append").save("data/bronze/players")
-                print(f"\n ***** Wrote {region} - {tier} - {division} - {count} ***** \n")
+        url = f"https://{region}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5"
+        response = requests.get(url, headers={"X-Riot-Token": api_key})
+        
+        if response.status_code == 200:
+            league_data = response.json()
+            for league_entry in league_data["entries"]:
+                players.append({"puuid": league_entry["puuid"]})
+        else:
+            print(f"API Error: {response.status_code}")
+            return
+        
+        df = spark.createDataFrame(players)
+        df.write.format("delta").mode("overwrite").save("data/bronze/players")
+
+        print(f"\nSaved {len(players)} players from {region}")
 
 def load_player():
-    api_key = getpass.getpass("\nAPI Key: ")
-    print("\n ***** Start load player ***** \n")
+    print("\n ***** Start load players ***** \n")
+    api_key = getpass.getpass("API Key: ")
     spark = init_spark()
     load_player_bronze(spark, api_key)
     spark.stop()
-    print("\n ***** End load player ***** \n")
+    print("\n ***** End load players ***** \n")
