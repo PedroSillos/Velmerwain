@@ -24,7 +24,9 @@ def display_match_id(spark):
         if not df:
             print("0 match_ids found")
             return
-        print("\nMatch_ids stored:",df.count())
+        print("\nMatch_id rows:",df.count())
+        print("\nDistinct puuids:",df.select("puuid").distinct().count())
+        print("\nDistinct matchIds:",df.select("matchId").distinct().count())
         df.show(truncate=False)
     except:
         print("\nNo match_id table found")
