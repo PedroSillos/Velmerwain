@@ -20,7 +20,15 @@ def load_player_bronze(spark, api_key):
         "sea": ["oc1", "sg2", "tw2", "vn2"]
     }
     
-    players = []
+    existing_players = set()
+    
+    try:
+        existing_player_rows = spark.read.format("delta").load("data/bronze/player").collect()
+        existing_players = {row["puuid"] for row in existing_player_rows}
+    except:
+        print("No player table found")
+
+    new_players = []
     
     for region in regions:
         for super_region_i in super_region_map:
@@ -37,7 +45,8 @@ def load_player_bronze(spark, api_key):
         if response.status_code == 200:
             league_data = response.json()
             for league_entry in league_data["entries"]:
-                players.append({"puuid": league_entry["puuid"]})
+                if league_entry["puuid"] not in existing_players:
+                    new_players.append({"puuid": league_entry["puuid"]})
         else:
             print(f"API Error: {response.status_code}")
             return
@@ -48,7 +57,8 @@ def load_player_bronze(spark, api_key):
         if response.status_code == 200:
             league_data = response.json()
             for league_entry in league_data["entries"]:
-                players.append({"puuid": league_entry["puuid"]})
+                if league_entry["puuid"] not in existing_players:
+                    new_players.append({"puuid": league_entry["puuid"]})
         else:
             print(f"API Error: {response.status_code}")
             return
@@ -59,15 +69,17 @@ def load_player_bronze(spark, api_key):
         if response.status_code == 200:
             league_data = response.json()
             for league_entry in league_data["entries"]:
-                players.append({"puuid": league_entry["puuid"]})
+                if league_entry["puuid"] not in existing_players:
+                    new_players.append({"puuid": league_entry["puuid"]})
         else:
             print(f"API Error: {response.status_code}")
             return
         
-        df = spark.createDataFrame(players)
-        df.write.format("delta").mode("overwrite").save("data/bronze/players")
+        df = spark.createDataFrame(new_players)
+        df.write.format("delta").mode("append").save("data/bronze/player")
 
-        print(f"\nSaved {len(players)} players from {region}")
+        print(f"\nSaved {len(new_players)} players from {region}")
+        df.show(5, truncate=False)
 
 def load_player():
     print("\n ***** Start load players ***** \n")
