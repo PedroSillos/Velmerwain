@@ -52,7 +52,6 @@ def load_match_id_bronze(spark, api_key):
             response = requests.get(url, headers={"X-Riot-Token": api_key})
         if response.status_code == 200:
             match_ids = response.json()
-            match_ids = set(match_ids) - existing_match_ids
             for match_id in match_ids:
                 if match_id not in existing_match_ids:
                     new_match_ids.append({"puuid": new_player, "matchId": match_id})
