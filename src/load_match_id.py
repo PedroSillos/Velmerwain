@@ -11,24 +11,26 @@ def init_spark():
     return configure_spark_with_delta_pip(builder).getOrCreate()
 
 def load_match_id_bronze(spark, api_key):
-    
-    existing_players = set()
+    # Get all players from player table
+    new_players = set()
     try:
         existing_player_rows = spark.read.format("delta").load("data/bronze/player").collect()
-        existing_players = {row["puuid"] for row in existing_player_rows}
+        new_players = {row["puuid"] for row in existing_player_rows}
     except:
         print("\nNo player table found")
         return
     
-    existing_players_with_match_ids = set()
+    # Get existing players with match_id to avoid re-fetching
+    existing_players = set()
     try:
         existing_player_with_match_id_rows = spark.read.format("delta").load("data/bronze/match_id").select("puuid").distinct().collect()
-        existing_players_with_match_ids = {row["puuid"] for row in existing_player_with_match_id_rows}
+        existing_players = {row["puuid"] for row in existing_player_with_match_id_rows}
     except:
         print("\nNo puuids found in match_id table")
     
-    new_players = existing_players - existing_players_with_match_ids
+    new_players = new_players - existing_players
     
+    # For each new player, get their match_ids
     existing_match_ids = set()
     try:
         existing_match_id_rows = spark.read.format("delta").load("data/bronze/match_id").select("matchId").distinct().collect()
@@ -50,9 +52,11 @@ def load_match_id_bronze(spark, api_key):
             response = requests.get(url, headers={"X-Riot-Token": api_key})
         if response.status_code == 200:
             match_ids = response.json()
+            match_ids = set(match_ids) - existing_match_ids
             for match_id in match_ids:
                 if match_id not in existing_match_ids:
                     new_match_ids.append({"puuid": new_player, "matchId": match_id})
+                    existing_match_ids.add(match_id)
         else:
             print(f"\nAPI Error: {response.status_code}")
             return
