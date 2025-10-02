@@ -10,17 +10,13 @@ def init_spark():
 def display_players(spark):
     try:
         df = spark.read.format("delta").load("data/bronze/players")
-        players = df.collect()
-        
-        if not players:
-            print("No players found")
+        if not df:
+            print("0 players found")
             return
-            
         print("\nPlayers stored:")
-        df.show()
-    
+        df.show(truncate=False)
     except:
-        print("No players found")
+        print("No players table found")
 
 def display_match_ids(spark):
     try:
@@ -57,6 +53,6 @@ def display_matches(spark):
 def list_data():
     spark = init_spark()
     display_players(spark)
-    display_match_ids(spark)
-    display_matches(spark)
+    #display_match_ids(spark)
+    #display_matches(spark)
     spark.stop()
