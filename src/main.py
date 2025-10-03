@@ -5,10 +5,10 @@ from list_data import list_data
 def main():
     action = input("\nEnter action: ")
     
-    if action.upper() in ["1", "LOAD PLAYER", "LP"]:
+    if action.upper() in ["1", "LOAD PLAYER"]:
         load_player()
         return
-    if action.upper()  in ["2", "LOAD MATCH ID", "LMI"]:
+    if action.upper()  in ["2", "LOAD MATCH ID"]:
         load_match_id()
         return
     if action.upper() in ["3", "LIST"]:
