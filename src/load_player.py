@@ -10,6 +10,7 @@ def init_spark():
     return configure_spark_with_delta_pip(builder).getOrCreate()
 
 def load_player_bronze(spark, api_key):
+    # Define all regions and their super regions
     regions = ["na1", "br1", "la1", "la2", "kr", "jp1", "eun1", "euw1", "me1", "tr1", "ru", "oc1", "sg2", "tw2", "vn2"]
     super_region_map = {
         "americas": ["na1", "br1", "la1", "la2"],
@@ -18,17 +19,20 @@ def load_player_bronze(spark, api_key):
         "sea": ["oc1", "sg2", "tw2", "vn2"]
     }
     
+    # Load existing players to avoid re-fetching
     existing_players = set()
-    
     try:
         existing_player_rows = spark.read.format("delta").load("data/bronze/player").collect()
         existing_players = {row["puuid"] for row in existing_player_rows}
     except:
         print("No player table found")
 
+    # Empty list that will be filled with new players
     new_players = []
     
+    # Load for every region
     for region in regions:
+        # Determine super region
         for super_region_i in super_region_map:
             if region in super_region_map[super_region_i]:
                 super_region = super_region_i
@@ -37,6 +41,7 @@ def load_player_bronze(spark, api_key):
         if region != "kr":
             continue
         
+        # Load from master
         url = f"https://{region}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         
@@ -49,6 +54,7 @@ def load_player_bronze(spark, api_key):
             print(f"API Error: {response.status_code}")
             return
 
+        # Load from grandmaster
         url = f"https://{region}.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         
@@ -61,6 +67,7 @@ def load_player_bronze(spark, api_key):
             print(f"API Error: {response.status_code}")
             return
 
+        # Load from challenger
         url = f"https://{region}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         
@@ -73,11 +80,13 @@ def load_player_bronze(spark, api_key):
             print(f"API Error: {response.status_code}")
             return
         
+        # Save new players to Delta table
         if new_players:
-            df = spark.createDataFrame(new_players[0:10]) # Limit to 10 for testing
+            df = spark.createDataFrame(new_players)
             df.write.format("delta").mode("append").save("data/bronze/player")
-
-        print(f"\nSaved {len(new_players[0:10])} players from {region}")
+            print(f"\nSaved {len(new_players)} players from {region} region")
+        else:
+            print(f"\nNo new players found from {region}")
 
 def load_player():
     print("\n ***** Start load players ***** \n")
