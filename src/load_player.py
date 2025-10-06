@@ -74,10 +74,10 @@ def load_player_bronze(spark, api_key):
             return
         
         if new_players:
-            df = spark.createDataFrame(new_players)
+            df = spark.createDataFrame(new_players[0:10]) # Limit to 10 for testing
             df.write.format("delta").mode("append").save("data/bronze/player")
 
-        print(f"\nSaved {len(new_players)} players from {region}")
+        print(f"\nSaved {len(new_players[0:10])} players from {region}")
 
 def load_player():
     print("\n ***** Start load players ***** \n")
