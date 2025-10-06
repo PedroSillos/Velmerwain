@@ -44,10 +44,10 @@ def load_match_id_bronze(spark, api_key):
     
     # Counter to know how many players were loaded
     count = 1
+    # Empty list to hold new match IDs
+    new_match_ids = []
     # Only fetch match IDs for new players
     for new_player in new_players:
-        # Empty list to hold new match IDs for this player
-        new_match_ids = []
         # Fetch match IDs for new_player from Riot API
         url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{new_player}/ids?queue=420&type=ranked&start=0&count=100"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
@@ -69,13 +69,15 @@ def load_match_id_bronze(spark, api_key):
         else:
             print(f"\nAPI Error: {response.status_code}")
             return
-        
         # Save new match IDs to match_id table
-        if new_match_ids:
+        # Save every 30 players to reduce number of writes (but also save at the end)
+        if new_match_ids and (count % 30 == 0 or count == len(new_players)):
             df = spark.createDataFrame(new_match_ids)
             df.write.format("delta").mode("append").save("data/bronze/match_id")
             # Print progress
-            print(f"\nSaved {len(new_match_ids)} match_ids for player {count}/{len(new_players)}")
+            print(f"\nSaved {len(new_match_ids)} match_ids for players until {count}/{len(new_players)}")
+            # Reset new_match_ids list
+            new_match_ids = []
         # Increment player counter
         count += 1
 
