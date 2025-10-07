@@ -29,6 +29,8 @@ def load_match_id_bronze(spark, api_key):
         print("\nNo puuids found in match_id table")
     
     new_players = all_players - players_with_match_id
+
+    print(f"\nFound {len(new_players)} new players")
     
     # For each new player, get their match_ids
     existing_match_ids = set()
