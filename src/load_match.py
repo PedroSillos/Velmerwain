@@ -35,48 +35,53 @@ def load_match_bronze(spark, api_key):
     # Get new match_ids
     new_match_ids = source_match_ids - destination_match_ids
 
-    print(f"\nFound {len(new_match_ids)} new match_ids: ", new_match_ids.pop())
+    print(f"\nFound {len(new_match_ids)} new match_ids")
     
-    """
-    # Counter to know how many players were loaded
+    # Counter to know how many matches were loaded
     count = 1
-    # Empty list to hold new match IDs
-    new_match_ids = []
-    # Only fetch match IDs for new players
-    for new_player in new_players:
-        # Fetch match IDs for new_player from Riot API
-        url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{new_player}/ids?queue=420&type=ranked&start=0&count=100"
+    # Empty list to hold new matches
+    new_matches = []
+    # Only fetch matches for new match ids
+    for new_match_id in new_match_ids:
+        # Fetch match for new_match_id from Riot API
+        url = f"https://asia.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         # Check if rate limit was exceeded
         while response.status_code == 429:
             # If rate limit exceeded, wait and retry
             print("Rate limit exceeded. Sleeping for 30 seconds...")
             time.sleep(30)
-            url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{new_player}/ids?queue=420&type=ranked&start=0&count=100"
+            url = f"https://asia.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
-        # If successful, load the match IDs
+        # If successful, load the match
         if response.status_code == 200:
-            match_ids = response.json()
-            for match_id in match_ids:
-                # Check if match_ids are not already in match_id table
-                if match_id not in existing_match_ids:
-                    new_match_ids.append({"puuid": new_player, "matchId": match_id})
-                    existing_match_ids.add(match_id)
+            match_api_data = response.json()
+            # Get participants and iterate (there will be a row in bronze/match for every participant)
+            participants = match_api_data["info"]["participants"]
+            for participant in participants:
+                participant_match = {
+                    "matchId": match_api_data["metadata"]["matchId"],
+                    "gameDuration": match_api_data["info"]["gameDuration"],
+                    "gameVersion": '.'.join(match_api_data["info"]["gameVersion"].split('.')[:2]),
+                    "assists": participant["assists"],
+                    "baronKills": participant["baronKills"],
+                    "champLevel": participant["champLevel"]
+                }
+                new_matches.append(participant_match)
         else:
             print(f"\nAPI Error: {response.status_code}")
             return
-        # Save new match IDs to match_id table
-        # Save every 30 players to reduce number of writes (but also save at the end)
-        if new_match_ids and (count % 30 == 0 or count == len(new_players)):
-            df = spark.createDataFrame(new_match_ids)
-            df.write.format("delta").mode("append").save("data/bronze/match_id")
+        # Save new matches to match table
+        # Save every 30 matches to reduce number of writes (but also save at the end)
+        if new_matches and (count % 30 == 0 or count == len(new_match_ids)):
+            df = spark.createDataFrame(new_matches)
+            df.write.format("delta").mode("append").save("data/bronze/match")
             # Print progress
-            print(f"\nSaved {len(new_match_ids)} match_ids for players until {count}/{len(new_players)}")
+            print(f"\nSaved {len(new_matches)} matches for match_ids until {count}/{len(new_match_ids)}")
             # Reset new_match_ids list
-            new_match_ids = []
+            new_matches = []
         # Increment player counter
         count += 1
-    """
 
 def load_match():
     print("\n ***** Start load matches ***** \n")
