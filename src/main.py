@@ -1,5 +1,6 @@
 from load_player import load_player
 from load_match_id import load_match_id
+from load_match import load_match
 from list_data import list_data
 
 def main():
@@ -11,7 +12,10 @@ def main():
     if action.upper()  in ["2", "LOAD MATCH ID"]:
         load_match_id()
         return
-    if action.upper() in ["3", "LIST"]:
+    if action.upper()  in ["3", "LOAD MATCH"]:
+        load_match()
+        return
+    if action.upper() in ["4", "LIST"]:
         list_data()
         return
     
