@@ -59,6 +59,23 @@ def load_match_bronze(spark, api_key):
             # Get participants and iterate (there will be a row in bronze/match for every participant)
             participants = match_api_data["info"]["participants"]
             for participant in participants:
+                team_index = 0
+                if participant["teamId"] == 200:
+                    team_index = 1
+                try:
+                    team_feats = match_api_data["info"]["teams"][team_index]["feats"]
+                except:
+                    team_feats = {
+                        "EPIC_MONSTER_KILL": {
+                            "featState": -1
+                        },
+                        "FIRST_BLOOD": {
+                            "featState": -1
+                        },
+                        "FIRST_TURRET": {
+                            "featState": -1
+                        }
+                    }
                 participant_match = {
                     "matchId": match_api_data["metadata"]["matchId"],
                     "puuid": participant["puuid"],
@@ -141,7 +158,18 @@ def load_match_bronze(spark, api_key):
                     "visionWardsBoughtInGame": participant["visionWardsBoughtInGame"],
                     "wardsKilled": participant["wardsKilled"],
                     "wardsPlaced": participant["wardsPlaced"],
-                    "win": participant["win"]
+                    "win": participant["win"],
+                    "featEpicMonsterKill": team_feats["EPIC_MONSTER_KILL"]["featState"],
+                    "featFirstBlood": team_feats["FIRST_BLOOD"]["featState"],
+                    "featFirstTurret": team_feats["FIRST_TURRET"]["featState"],
+                    "teamAtakhanKills": match_api_data["info"]["teams"][team_index]["objectives"]["atakhan"]["kills"],
+                    "teamBaronKills": match_api_data["info"]["teams"][team_index]["objectives"]["baron"]["kills"],
+                    "teamChampionKills": match_api_data["info"]["teams"][team_index]["objectives"]["champion"]["kills"],
+                    "teamDragonKills": match_api_data["info"]["teams"][team_index]["objectives"]["dragon"]["kills"],
+                    "teamHordeKills": match_api_data["info"]["teams"][team_index]["objectives"]["horde"]["kills"],
+                    "teamInhibitorKills": match_api_data["info"]["teams"][team_index]["objectives"]["inhibitor"]["kills"],
+                    "teamRiftHeraldKills": match_api_data["info"]["teams"][team_index]["objectives"]["riftHerald"]["kills"],
+                    "teamTowerKills": match_api_data["info"]["teams"][team_index]["objectives"]["tower"]["kills"]
                 }
                 new_matches.append(participant_match)
         else:
