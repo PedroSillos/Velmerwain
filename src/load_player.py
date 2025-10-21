@@ -11,7 +11,6 @@ def init_spark():
 
 def load_player_bronze(spark, api_key):
     # Define all regions and their super regions
-    regions = ["na1", "br1", "la1", "la2", "kr", "jp1", "eun1", "euw1", "me1", "tr1", "ru", "oc1", "sg2", "tw2", "vn2"]
     super_region_map = {
         "americas": ["na1", "br1", "la1", "la2"],
         "asia": ["kr", "jp1"],
