@@ -64,8 +64,8 @@ def load_player_bronze(spark, game_name, tag_line, api_key):
     else:
         print(f"\nPlayer {game_name}#{tag_line} already exists in the player table")
 
-        #Update existing player info
-
+        # Update existing player info
+        # TBD
 
 def load_player():
     print("\n ***** Start load players ***** \n")
