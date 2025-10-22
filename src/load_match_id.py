@@ -12,25 +12,15 @@ def init_spark():
 
 def load_match_id_bronze(spark, api_key):
     # Get all players from player table
-    all_players = set()
+    players = set()
     try:
-        all_player_rows = spark.read.format("delta").load("data/bronze/player").collect()
-        all_players = {row["puuid"] for row in all_player_rows}
+        player_rows = spark.read.format("delta").load("data/bronze/player").collect()
+        players = {row["puuid"] for row in player_rows}
     except:
         print("\nNo player table found")
         return
-    
-    # Get players with match_id to avoid re-fetching
-    players_with_match_id = set()
-    try:
-        players_with_match_id_rows = spark.read.format("delta").load("data/bronze/match_id").select("puuid").distinct().collect()
-        players_with_match_id = {row["puuid"] for row in players_with_match_id_rows}
-    except:
-        print("\nNo puuids found in match_id table")
-    
-    new_players = all_players - players_with_match_id
 
-    print(f"\nFound {len(new_players)} new players")
+    print(f"\nFound {len(players)} new players")
     
     # For each new player, get their match_ids
     existing_match_ids = set()
@@ -40,7 +30,7 @@ def load_match_id_bronze(spark, api_key):
     except:
         print("\nNo matchIds found in match_id table")
 
-    if not new_players:
+    if not players:
         print("\nNo new players found")
         return    
     
@@ -49,16 +39,16 @@ def load_match_id_bronze(spark, api_key):
     # Empty list to hold new match IDs
     new_match_ids = []
     # Only fetch match IDs for new players
-    for new_player in new_players:
-        # Fetch match IDs for new_player from Riot API
-        url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{new_player}/ids?queue=420&type=ranked&start=0&count=100"
+    for player in players:
+        # Fetch match IDs for player from Riot API
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{player}/ids?queue=420&type=ranked&start=0&count=100"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         # Check if rate limit was exceeded
         while response.status_code == 429:
             # If rate limit exceeded, wait and retry
             print("Rate limit exceeded. Sleeping for 30 seconds...")
             time.sleep(30)
-            url = f"https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{new_player}/ids?queue=420&type=ranked&start=0&count=100"
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{player}/ids?queue=420&type=ranked&start=0&count=100"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
         # If successful, load the match IDs
         if response.status_code == 200:
@@ -66,18 +56,18 @@ def load_match_id_bronze(spark, api_key):
             for match_id in match_ids:
                 # Check if match_ids are not already in match_id table
                 if match_id not in existing_match_ids:
-                    new_match_ids.append({"puuid": new_player, "matchId": match_id})
+                    new_match_ids.append({"puuid": player, "matchId": match_id})
                     existing_match_ids.add(match_id)
         else:
             print(f"\nAPI Error: {response.status_code}")
             return
         # Save new match IDs to match_id table
         # Save every 30 players to reduce number of writes (but also save at the end)
-        if new_match_ids and (count % 30 == 0 or count == len(new_players)):
+        if new_match_ids and (count % 30 == 0 or count == len(players)):
             df = spark.createDataFrame(new_match_ids)
             df.write.format("delta").mode("append").save("data/bronze/match_id")
             # Print progress
-            print(f"\nSaved {len(new_match_ids)} match_ids for players until {count}/{len(new_players)}")
+            print(f"\nSaved {len(new_match_ids)} match_ids for players until {count}/{len(players)}")
             # Reset new_match_ids list
             new_match_ids = []
         # Increment player counter
