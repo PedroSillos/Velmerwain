@@ -22,18 +22,19 @@ def load_match_id_bronze(spark, api_key):
 
     print(f"\nFound {len(players)} new players")
     
-    # For each new player, get their match_ids
-    existing_match_ids = set()
-    try:
-        existing_match_id_rows = spark.read.format("delta").load("data/bronze/match_id").select("matchId").distinct().collect()
-        existing_match_ids = {row["matchId"] for row in existing_match_id_rows}
-    except:
-        print("\nNo matchIds found in match_id table")
-
     if not players:
         print("\nNo new players found")
-        return    
+        return
     
+    # Get existing match_ids
+    existing_match_ids = set()
+    try:
+        existing_match_id_rows = spark.read.format("delta").load("data/bronze/match_id").collect()
+        existing_match_ids = {row["matchId"] for row in existing_match_id_rows}
+    except:
+        print("\nNo match_id table found")
+    
+    '''
     # Counter to know how many players were loaded
     count = 1
     # Empty list to hold new match IDs
@@ -72,6 +73,7 @@ def load_match_id_bronze(spark, api_key):
             new_match_ids = []
         # Increment player counter
         count += 1
+    '''
 
 def load_match_id():
     print("\n ***** Start load match_ids ***** \n")
