@@ -23,7 +23,7 @@ def load_match_id_bronze(spark, api_key):
     print(f"\nFound {len(players)} new players")
     
     if not players:
-        print("\nNo new players found")
+        print("\nNo players found")
         return
     
     # Get existing match_ids
