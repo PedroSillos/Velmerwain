@@ -68,7 +68,7 @@ def load_match_id_bronze(spark, api_key):
                 break
             # Increment start for pagination
             start += 100
-        print(f"\nFinished fetching match_ids for player {count-1}/{len(players)}")
+        print(f"\nFinished fetching match_ids for player {count}/{len(players)}")
         # Save new match IDs to match_id table
         # Save every 10 players to reduce number of writes (but also save at the end)
         if new_match_ids and (count % 10 == 0 or count == len(players)):
@@ -78,6 +78,8 @@ def load_match_id_bronze(spark, api_key):
             print(f"\nSaved {len(new_match_ids)} match_ids for players until {count}/{len(players)}")
             # Reset new_match_ids list
             new_match_ids = []
+        if (not new_match_ids) and (count % 10 == 0 or count == len(players)):
+            print(f"\nNo new match_ids to save for {len(players)} players")
         # Increment player counter
         count += 1
 
