@@ -44,14 +44,14 @@ def load_match_bronze(spark, api_key):
     # Only fetch matches for new match ids
     for new_match_id in new_match_ids:
         # Fetch match for new_match_id from Riot API
-        url = f"https://asia.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         # Check if rate limit was exceeded
         while response.status_code == 429:
             # If rate limit exceeded, wait and retry
             print("Rate limit exceeded. Sleeping for 30 seconds...")
             time.sleep(30)
-            url = f"https://asia.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
         # If successful, load the match
         if response.status_code == 200:
