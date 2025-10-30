@@ -40,7 +40,6 @@ def load_match_id_bronze(spark, api_key):
     new_match_ids = []
     # Only fetch match IDs for new players
     for player in players:
-        print(f"\nStart fetching match_ids for player {count}/{len(players)}")
         # Initialize to enter the loop
         match_ids = ["text because cannot be empty"]
         start = 0
@@ -68,7 +67,6 @@ def load_match_id_bronze(spark, api_key):
                 break
             # Increment start for pagination
             start += 100
-        print(f"\nFinished fetching match_ids for player {count}/{len(players)}")
         # Save new match IDs to match_id table
         # Save every 10 players to reduce number of writes (but also save at the end)
         if new_match_ids and (count % 10 == 0 or count == len(players)):
