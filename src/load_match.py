@@ -76,6 +76,36 @@ def load_match_bronze(spark, api_key):
                             "featState": -1
                         }
                     }
+                try:
+                    team_objectives = match_api_data["info"]["teams"][team_index]["objectives"]
+                    team_atakhan_kills = team_objectives["atakhan"]["kills"]
+                except:
+                    team_objectives = {
+                        "atakhan": {
+                            "kills": 0
+                        },
+                        "baron": {
+                            "kills": 0
+                        },
+                        "champion": {
+                            "kills": 0
+                        },
+                        "dragon": {
+                            "kills": 0
+                        },
+                        "horde": {
+                            "kills": 0
+                        },
+                        "inhibitor": {
+                            "kills": 0
+                        },
+                        "riftHerald": {
+                            "kills": 0
+                        },
+                        "tower": {
+                            "kills": 0
+                        }
+                    }
                 participant_match = {
                     "matchId": match_api_data["metadata"]["matchId"],
                     "puuid": participant["puuid"],
@@ -162,14 +192,14 @@ def load_match_bronze(spark, api_key):
                     "featEpicMonsterKill": team_feats["EPIC_MONSTER_KILL"]["featState"],
                     "featFirstBlood": team_feats["FIRST_BLOOD"]["featState"],
                     "featFirstTurret": team_feats["FIRST_TURRET"]["featState"],
-                    "teamAtakhanKills": match_api_data["info"]["teams"][team_index]["objectives"]["atakhan"]["kills"],
-                    "teamBaronKills": match_api_data["info"]["teams"][team_index]["objectives"]["baron"]["kills"],
-                    "teamChampionKills": match_api_data["info"]["teams"][team_index]["objectives"]["champion"]["kills"],
-                    "teamDragonKills": match_api_data["info"]["teams"][team_index]["objectives"]["dragon"]["kills"],
-                    "teamHordeKills": match_api_data["info"]["teams"][team_index]["objectives"]["horde"]["kills"],
-                    "teamInhibitorKills": match_api_data["info"]["teams"][team_index]["objectives"]["inhibitor"]["kills"],
-                    "teamRiftHeraldKills": match_api_data["info"]["teams"][team_index]["objectives"]["riftHerald"]["kills"],
-                    "teamTowerKills": match_api_data["info"]["teams"][team_index]["objectives"]["tower"]["kills"]
+                    "teamAtakhanKills": team_objectives["atakhan"]["kills"],
+                    "teamBaronKills": team_objectives["baron"]["kills"],
+                    "teamChampionKills": team_objectives["champion"]["kills"],
+                    "teamDragonKills": team_objectives["dragon"]["kills"],
+                    "teamHordeKills": team_objectives["horde"]["kills"],
+                    "teamInhibitorKills": team_objectives["inhibitor"]["kills"],
+                    "teamRiftHeraldKills": team_objectives["riftHerald"]["kills"],
+                    "teamTowerKills": team_objectives["tower"]["kills"]
                 }
                 new_matches.append(participant_match)
         else:
