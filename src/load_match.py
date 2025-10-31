@@ -50,14 +50,14 @@ def load_match_bronze(spark, api_key):
     # Only fetch matches for new match ids
     for new_match_id in new_match_ids:
         # Fetch match for new_match_id from Riot API
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id['matchId']}"
         response = requests.get(url, headers={"X-Riot-Token": api_key})
         # Check if rate limit was exceeded
         while response.status_code == 429:
             # If rate limit exceeded, wait and retry
             print("Rate limit exceeded. Sleeping for 30 seconds...")
             time.sleep(30)
-            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id}"
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{new_match_id['matchId']}"
             response = requests.get(url, headers={"X-Riot-Token": api_key})
         # If successful, load the match
         if response.status_code == 200:
@@ -210,8 +210,7 @@ def load_match_bronze(spark, api_key):
                     }
                     new_matches.append(participant_match)
         else:
-            print(f"\nAPI Error: {response.status_code}")
-            print(f"for match_id {new_match_id['matchId']}")
+            print(f"\nAPI Error: {response.status_code} for match_id {new_match_id['matchId']}")
             return
         # Save new matches to match table
         # Save every 30 matches to reduce number of writes (but also save at the end)
@@ -219,7 +218,7 @@ def load_match_bronze(spark, api_key):
             df = spark.createDataFrame(new_matches)
             df.write.format("delta").mode("append").save("data/bronze/match")
             # Print progress
-            print(f"\nSaved {len(new_matches)} matches for match_ids until {count}/{len(new_match_ids)}")
+            print(f"\nSaved match_ids until {count}/{len(new_match_ids)}")
             # Reset new_match_ids list (avoid re-insert)
             new_matches = []
         # Increment player counter
