@@ -65,7 +65,7 @@ def load_match_bronze(spark, api_key):
             # Get participants and iterate (there will be a row in bronze/match for every participant)
             participants = match_api_data["info"]["participants"]
             for participant in participants:
-                if participant["puuid"] == new_match_id["puuid"]:
+                if participant["puuid"] == new_match_id["puuid"]: #
                     team_index = 0
                     if participant["teamId"] == 200:
                         team_index = 1
